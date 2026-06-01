@@ -1,4 +1,4 @@
 {
-  "packages/messenger": "0.1.1",
-  "packages/transport-redis": "0.1.1"
+  "packages/messenger": "0.1.2",
+  "packages/transport-redis": "0.1.2"
 }
