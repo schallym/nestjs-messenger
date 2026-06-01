@@ -1,6 +1,6 @@
 {
   "name": "@schally/nestjs-messenger-transport-redis",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Redis Streams transport for @schally/nestjs-messenger (not BullMQ — see ADR-003).",
   "license": "MIT",
   "keywords": [

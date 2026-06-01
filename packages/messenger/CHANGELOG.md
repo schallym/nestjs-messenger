@@ -1,5 +1,12 @@
 # @schally/nestjs-messenger
 
+## [0.1.3](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.2...nestjs-messenger-v0.1.3) (2026-06-01)
+
+
+### Bug Fixes
+
+* **cli:** handle --all option gracefully in failed message removal command ([50e321b](https://github.com/schallym/nestjs-messenger/commit/50e321b5722cc33a044a04b30a682fb55a8c1220))
+
 ## [0.1.2](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.1...nestjs-messenger-v0.1.2) (2026-06-01)
 
 
