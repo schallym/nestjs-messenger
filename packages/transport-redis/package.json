@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@schally/nestjs-messenger": "workspace:*",
-    "@types/jest": "^29.5.14",
-    "jest": "^29.7.0"
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2"
   }
 }
