@@ -1,6 +1,6 @@
 {
   "name": "@schally/nestjs-messenger",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A unified message bus for NestJS with pluggable transports, modelled on Symfony Messenger.",
   "license": "MIT",
   "keywords": [

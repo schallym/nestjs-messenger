@@ -1,5 +1,12 @@
 # @schally/nestjs-messenger
 
+## [0.1.2](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.1...nestjs-messenger-v0.1.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **cli:** add end-to-end tests for messenger CLI commands and fix imports issues ([7ef29a0](https://github.com/schallym/nestjs-messenger/commit/7ef29a05bed5591ab741269eb34cd61b1bd80ab3))
+
 ## [0.1.1](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.0...nestjs-messenger-v0.1.1) (2026-06-01)
 
 
