@@ -1,0 +1,67 @@
+name: Release
+
+# Conventional-commit-driven releases via release-please.
+#
+# Every push to main updates a single "release PR" whose version is computed from the
+# commit messages since the last release:
+#   - fix:                       -> patch   (0.1.0 -> 0.1.1)
+#   - feat:                      -> minor   (0.1.0 -> 0.2.0)
+#   - feat!: / BREAKING CHANGE:  -> major   (0.1.0 -> 1.0.0)
+# (commits that aren't conventional, or are docs/chore/refactor/test/ci, don't trigger a
+# release on their own.)
+#
+# In this monorepo a commit is attributed to the package whose files it touches; the
+# node-workspace plugin keeps cross-package dependency ranges (the transport's peer on
+# the core) in sync. Merging the release PR tags the release(s) and creates the GitHub
+# release; the `publish` job then builds and publishes the bumped packages to npm.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # release commits, tags, and GitHub releases
+  pull-requests: write # open/update the release PR
+  id-token: write # npm provenance
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release PR / tag
+    runs-on: ubuntu-latest
+    # Don't run on forks (no NPM_TOKEN, and forks shouldn't cut releases).
+    if: ${{ github.repository == 'schallym/nestjs-messenger' }}
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: release-please
+    # Only when merging the release PR actually created a release (tagged a new version).
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # Publishes every non-private package whose version is not yet on the registry
+      # (the private e2e package is skipped). Already-published versions are no-ops.
+      - run: pnpm -r publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'

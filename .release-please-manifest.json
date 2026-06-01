@@ -1,0 +1,4 @@
+{
+  "packages/messenger": "0.1.0",
+  "packages/transport-redis": "0.1.0"
+}

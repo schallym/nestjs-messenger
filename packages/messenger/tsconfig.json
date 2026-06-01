@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    // `src/testing/` ships a Jest-based conformance suite that uses describe/it/expect,
+    // so the package compiles against node + jest ambient globals.
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*.ts"]
+}

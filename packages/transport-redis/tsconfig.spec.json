@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "jest"],
+    "isolatedModules": false,
+    // ts-jest emits CommonJS, so its type-checker uses classic node resolution which
+    // ignores the package `exports` map. Point both messenger entry points at the
+    // source for type-checking (a single type identity — the conformance suite and the
+    // transport must share the same `Envelope` type); jest's runtime resolver still
+    // finds the built code via the exports map.
+    "baseUrl": ".",
+    "paths": {
+      "@schally/nestjs-messenger": ["../messenger/src/index.ts"],
+      "@schally/nestjs-messenger/testing": ["../messenger/src/testing/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

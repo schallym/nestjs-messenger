@@ -1,0 +1,22 @@
+{
+  "name": "@schally/nestjs-messenger-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "End-to-end scenarios booting a real NestJS app against real brokers.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test:e2e": "jest --config jest.config.ts --runInBand --passWithNoTests"
+  },
+  "devDependencies": {
+    "@schally/nestjs-messenger": "workspace:*",
+    "@schally/nestjs-messenger-transport-redis": "workspace:*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "ioredis": "^5.4.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "tslib": "^2.8.1"
+  }
+}

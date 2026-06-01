@@ -1,0 +1,14 @@
+# Shared broker harness for E2E — used by BOTH CI and local dev (`pnpm dev:brokers`).
+# v0.1 only ships the Redis Streams transport, so Redis is the only service here.
+# v0.2 transports (RabbitMQ, Postgres, Pub/Sub) get added alongside their packages;
+# see the e2e-testing skill for the full target compose file.
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 2s
+      retries: 10

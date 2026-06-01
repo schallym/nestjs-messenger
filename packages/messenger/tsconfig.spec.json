@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "jest"],
+    // Type-aware emit for ts-jest: with `isolatedModules`, emitDecoratorMetadata wraps
+    // param types in defensive `typeof x === "undefined" ? Object : x` guards whose
+    // fallback branch is unreachable, polluting coverage on decorated NestJS classes.
+    "isolatedModules": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

@@ -1,0 +1,55 @@
+version: 2
+
+updates:
+  # npm/pnpm dependencies — one set of PRs per manifest: the workspace root (tooling),
+  # each published package, and the private e2e app. Dependabot reconciles the shared
+  # root pnpm-lock.yaml automatically.
+  - package-ecosystem: npm
+    directories:
+      - '/'
+      - '/packages/messenger'
+      - '/packages/transport-redis'
+      - '/e2e'
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    # Conventional-commit prefixes so release-please reacts correctly:
+    #   runtime deps -> `fix(deps): …`  (cuts a patch release for the affected package)
+    #   dev deps     -> `chore(deps-dev): …`  (tooling only, no release)
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+      include: scope
+    # Internal workspace packages are versioned by release-please (node-workspace plugin),
+    # so Dependabot must not try to bump the cross-package peer/dev ranges.
+    ignore:
+      - dependency-name: '@schally/*'
+    # Bundle non-breaking dev-dependency bumps into a single PR to cut noise; runtime
+    # deps stay as individual PRs so each maps to its own clean patch release.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  # Keep the actions used by the CI and release workflows current.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      github-actions:
+        patterns:
+          - '*'
