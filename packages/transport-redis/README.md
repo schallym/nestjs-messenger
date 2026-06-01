@@ -1,5 +1,8 @@
 # @schally/nestjs-messenger-transport-redis
 
+[![npm version](https://img.shields.io/npm/v/@schally/nestjs-messenger-transport-redis.svg)](https://www.npmjs.com/package/@schally/nestjs-messenger-transport-redis)
+[![License](https://img.shields.io/github/license/schallym/node-akeneo-api-client.svg)](LICENSE)
+
 A [Redis Streams](https://redis.io/docs/data-types/streams/) transport for
 [`@schally/nestjs-messenger`](../messenger). Built **directly on Redis Streams**
 (`XADD` / `XREADGROUP` / `XACK` / `XAUTOCLAIM`) via `ioredis` — **not** BullMQ

@@ -1,5 +1,8 @@
 # nestjs-messenger
 
+[![npm version](https://img.shields.io/npm/v/@schally/nestjs-messenger.svg)](https://www.npmjs.com/package/@schally/nestjs-messenger)
+[![License](https://img.shields.io/github/license/schallym/node-akeneo-api-client.svg)](LICENSE)
+
 **Symfony Messenger's developer experience, native to NestJS.** A unified message bus
 with pluggable transports, a middleware pipeline, an envelope/stamps system, retry
 strategies with backoff, a failure transport, and a `consume` worker CLI.
