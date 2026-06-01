@@ -6,7 +6,18 @@
     "noEmit": true,
     "allowJs": true,
     "checkJs": false,
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    // Resolve the workspace packages to their SOURCE for type-aware linting, so `pnpm lint`
+    // doesn't require a build first (the CI lint job doesn't build). Without this, imports
+    // of `@schally/*` resolve via the package `exports` map to `dist/`, which is absent at
+    // lint time → types "cannot be resolved" → false-positive no-unsafe-* errors.
+    "baseUrl": ".",
+    "paths": {
+      "@schally/nestjs-messenger": ["packages/messenger/src/index.ts"],
+      "@schally/nestjs-messenger/cli": ["packages/messenger/src/cli/index.ts"],
+      "@schally/nestjs-messenger/testing": ["packages/messenger/src/testing/index.ts"],
+      "@schally/nestjs-messenger-transport-redis": ["packages/transport-redis/src/index.ts"]
+    }
   },
   "include": ["packages/**/*.ts", "e2e/**/*.ts", "*.ts", "*.mjs", "*.cjs"],
   "exclude": ["**/dist/**", "**/node_modules/**"]
