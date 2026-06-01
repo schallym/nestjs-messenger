@@ -1,5 +1,16 @@
 # @schally/nestjs-messenger-transport-redis
 
+## [0.1.3](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-redis-v0.1.2...nestjs-messenger-transport-redis-v0.1.3) (2026-06-01)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @schally/nestjs-messenger bumped to 0.1.3
+  * peerDependencies
+    * @schally/nestjs-messenger bumped from ^0.1.0 to ^0.1.3
+
 ## [0.1.2](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-redis-v0.1.1...nestjs-messenger-transport-redis-v0.1.2) (2026-06-01)
 
 
