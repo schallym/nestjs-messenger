@@ -214,10 +214,19 @@ This is the part where Symfony Messenger users will feel at home and BullMQ user
 First, wire the CLI commands (from the `@schally/nestjs-messenger/cli` subpath) into a
 small entrypoint — they're nest-commander commands registered as providers:
 
+Install the CLI dependency:
+```bash
+# pnpm
+pnpm add nest-commander
+# npm
+npm install nest-commander
+```
+
 ```ts
 // src/cli.ts
 import { Module } from '@nestjs/common';
 import { CommandFactory } from 'nest-commander';
+import type { INestApplicationContext } from '@nestjs/common';
 import {
   ConsumeCommand,
   FailedRemoveCommand,
@@ -226,16 +235,34 @@ import {
 } from '@schally/nestjs-messenger/cli';
 import { AppModule } from './app.module';
 
+type CommandFactoryStatic = {
+  run(
+    module: new () => void,
+    logLevels?: string[],
+  ): Promise<INestApplicationContext | void>;
+};
+
 @Module({
   imports: [AppModule],
-  providers: [ConsumeCommand, FailedShowCommand, FailedRetryCommand, FailedRemoveCommand],
+  providers: [
+    ConsumeCommand,
+    FailedShowCommand,
+    FailedRetryCommand,
+    FailedRemoveCommand,
+  ],
 })
 class CliModule {}
 
-// A bootstrap function — NOT top-level await, which doesn't compile in a CommonJS
-// project (NestJS's default). `['warn', 'error']` quiets Nest's startup logs.
 async function bootstrap(): Promise<void> {
-  await CommandFactory.run(CliModule, ['log', 'warn', 'error']);
+  try {
+    await (CommandFactory as CommandFactoryStatic).run(CliModule, [
+      'log',
+      'warn',
+      'error',
+    ]);
+  } catch (err) {
+    console.error(err);
+  }
 }
 void bootstrap();
 ```

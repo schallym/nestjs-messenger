@@ -126,20 +126,55 @@ Routed messages sit on their transport until a worker consumes them. Wire the
 `ConsumeCommand` (from the `@schally/nestjs-messenger/cli` subpath, which pulls in
 `nest-commander`) into a small CLI entry:
 
+Install the CLI dependency:
+```bash
+# pnpm
+pnpm add nest-commander
+# npm
+npm install nest-commander
+```
+
 ```ts
 // src/cli.ts
-import { CommandFactory } from 'nest-commander';
 import { Module } from '@nestjs/common';
-import { ConsumeCommand } from '@schally/nestjs-messenger/cli';
+import { CommandFactory } from 'nest-commander';
+import type { INestApplicationContext } from '@nestjs/common';
+import {
+  ConsumeCommand,
+  FailedRemoveCommand,
+  FailedRetryCommand,
+  FailedShowCommand,
+} from '@schally/nestjs-messenger/cli';
 import { AppModule } from './app.module';
 
-@Module({ imports: [AppModule], providers: [ConsumeCommand] })
+type CommandFactoryStatic = {
+  run(
+          module: new () => void,
+          logLevels?: string[],
+  ): Promise<INestApplicationContext | void>;
+};
+
+@Module({
+  imports: [AppModule],
+  providers: [
+    ConsumeCommand,
+    FailedShowCommand,
+    FailedRetryCommand,
+    FailedRemoveCommand,
+  ],
+})
 class CliModule {}
 
-// A bootstrap function — NOT top-level await, which doesn't compile in a CommonJS
-// project (NestJS's default). `['warn', 'error']` quiets Nest's startup logs.
 async function bootstrap(): Promise<void> {
-  await CommandFactory.run(CliModule, ['log', 'warn', 'error']);
+  try {
+    await (CommandFactory as CommandFactoryStatic).run(CliModule, [
+      'log',
+      'warn',
+      'error',
+    ]);
+  } catch (err) {
+    console.error(err);
+  }
 }
 void bootstrap();
 ```
