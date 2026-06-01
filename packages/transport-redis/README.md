@@ -102,3 +102,7 @@ validated (a typo throws `TransportConnectionError`) and handed to ioredis for p
 The transport is validated against the shared conformance suite plus targeted tests,
 **against a real Redis** (`pnpm dev:brokers` locally, a Redis service in CI). Mocking
 ioredis would test the mock, not Streams behaviour.
+
+---
+
+Made with ❤️ by [schallym](https://github.com/schallym) and [contributors](https://github.com/schallym/nestjs-messenger/graphs/contributors).

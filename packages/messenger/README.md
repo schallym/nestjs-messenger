@@ -112,3 +112,7 @@ See the [transport-implementation skill](https://github.com/schallym/nestjs-mess
 ## License
 
 MIT.
+
+---
+
+Made with ❤️ by [schallym](https://github.com/schallym) and [contributors](https://github.com/schallym/nestjs-messenger/graphs/contributors).

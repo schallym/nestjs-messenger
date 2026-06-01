@@ -312,3 +312,8 @@ on framework-agnostic modules, 95%/90% on integration glue.
 ## License
 
 MIT.
+
+---
+
+Made with ❤️ by [schallym](https://github.com/schallym) and [contributors](https://github.com/schallym/nestjs-messenger/graphs/contributors).
+
