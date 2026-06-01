@@ -1,5 +1,12 @@
 # @schally/nestjs-messenger
 
+## [0.1.1](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.0...nestjs-messenger-v0.1.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* add contributor acknowledgment to README ([16485ef](https://github.com/schallym/nestjs-messenger/commit/16485ef2a5f8d4652a8d2b605750859773ba5ac4))
+
 ## 0.1.0
 
 ### Minor Changes
