@@ -1,4 +1,4 @@
-import { Injectable, type INestApplication } from '@nestjs/common';
+import { Inject, Injectable, type INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
   BusNameStamp,
@@ -8,9 +8,15 @@ import {
   MessageBus,
   MessageHandler,
   type MessageHandlerInterface,
+  MESSENGER_OPTIONS,
+  MESSENGER_SENDERS_LOCATOR,
+  MESSENGER_TRANSPORTS,
   type Middleware,
   MessengerModule,
+  type MessengerModuleOptions,
+  type SendersLocator,
   type StackInterface,
+  type TransportInterface,
 } from '../src';
 
 class GreetMessage {
@@ -111,6 +117,54 @@ describe('MessengerModule.forRootAsync', () => {
 
     expect(result.last(BusNameStamp)?.busName).toBe('async-bus');
     expect(app.get(GreetHandler).greeted).toContain('lin');
+    await app.close();
+  });
+});
+
+// Mirrors the documented CLI wiring: an app module owns MessengerModule.forRoot, and a
+// SEPARATE module imports the app module and registers providers (the CLI commands) that
+// inject the messenger tokens. This only resolves because MessengerModule is global —
+// the fast regression guard for the consumer error "Nest can't resolve dependencies of
+// the ConsumeCommand (MESSENGER_TRANSPORTS)".
+@Injectable()
+class TokenConsumer {
+  constructor(
+    @Inject(MESSENGER_TRANSPORTS)
+    readonly transports: ReadonlyMap<string, TransportInterface>,
+    readonly bus: MessageBus,
+    @Inject(MESSENGER_SENDERS_LOCATOR) readonly senders: SendersLocator,
+    @Inject(MESSENGER_OPTIONS) readonly options: MessengerModuleOptions,
+  ) {}
+}
+
+@Module({
+  imports: [
+    MessengerModule.forRoot({
+      transports: { async: () => new InMemoryTransport({ name: 'async' }) },
+      routing: {},
+      failureTransport: 'async',
+    }),
+  ],
+})
+class GlobalAppModule {}
+
+@Module({ imports: [GlobalAppModule], providers: [TokenConsumer] })
+class SeparateConsumerModule {}
+
+describe('MessengerModule is global', () => {
+  it('lets a separate module (importing the app module) inject the messenger tokens', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [SeparateConsumerModule],
+    }).compile();
+    const app = moduleRef.createNestApplication();
+    await app.init();
+
+    const consumer = app.get(TokenConsumer, { strict: false });
+    expect(consumer.transports.has('async')).toBe(true);
+    expect(consumer.bus).toBeInstanceOf(MessageBus);
+    expect(consumer.senders.getSenderByAlias('async')).toBeDefined();
+    expect(consumer.options.failureTransport).toBe('async');
+
     await app.close();
   });
 });

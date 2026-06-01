@@ -232,7 +232,12 @@ import { AppModule } from './app.module';
 })
 class CliModule {}
 
-await CommandFactory.run(CliModule);
+// A bootstrap function — NOT top-level await, which doesn't compile in a CommonJS
+// project (NestJS's default). `['warn', 'error']` quiets Nest's startup logs.
+async function bootstrap(): Promise<void> {
+  await CommandFactory.run(CliModule, ['warn', 'error']);
+}
+void bootstrap();
 ```
 
 ```bash

@@ -28,12 +28,20 @@ const EXPORTED_PROVIDERS = [
  * Wires the message bus, middleware pipeline, transports, and handler discovery into
  * NestJS DI. This module is glue: all behaviour lives in the framework-agnostic
  * modules it composes.
+ *
+ * It is registered as a **global** module: there is one messenger setup per app (the bus
+ * and transports are app-wide infrastructure, like Symfony Messenger's bus), so its
+ * exports are visible everywhere without re-importing. This is what lets a separate CLI
+ * module — e.g. `@Module({ imports: [AppModule], providers: [ConsumeCommand] })` — resolve
+ * `MESSENGER_TRANSPORTS` / `MessageBus` for the `messenger:*` commands without the
+ * consumer having to re-export `MessengerModule` from every module in between.
  */
 @Module({})
 export class MessengerModule {
   static forRoot(options: MessengerModuleOptions): DynamicModule {
     return {
       module: MessengerModule,
+      global: true,
       imports: [DiscoveryModule],
       providers: [
         { provide: MESSENGER_OPTIONS, useValue: options },
@@ -50,6 +58,7 @@ export class MessengerModule {
   static forRootAsync(options: MessengerModuleAsyncOptions): DynamicModule {
     return {
       module: MessengerModule,
+      global: true,
       imports: [DiscoveryModule, ...(options.imports ?? [])],
       providers: [
         {

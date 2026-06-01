@@ -50,6 +50,9 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/.turbo/**',
       '**/*.tsbuildinfo',
+      // Plain-CJS e2e fixtures (a stand-in for a consumer's compiled CLI); run by node,
+      // not part of the typed source, so they're outside the type-aware lint program.
+      'e2e/fixtures/**',
     ],
   },
 
@@ -153,13 +156,16 @@ export default tseslint.config(
     },
   },
 
-  // Tests: same strictness, minus the export-surface rules that only make
-  // sense for shipped source, and allowing payload-free marker message classes.
+  // Tests (unit + e2e): same strictness, minus the export-surface rules that only make
+  // sense for shipped source, and allowing payload-free marker message classes. Tests run
+  // as CommonJS via ts-jest, so `__dirname` is correct and the ESM-only `prefer-module`
+  // rule does not apply.
   {
-    files: ['**/*.spec.ts', '**/test/**/*.ts'],
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/test/**/*.ts'],
     rules: {
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-extraneous-class': 'off',
+      'unicorn/prefer-module': 'off',
     },
   },
 

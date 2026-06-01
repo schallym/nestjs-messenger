@@ -43,6 +43,16 @@
       "default": "./dist/cli/index.js"
     }
   },
+  "typesVersions": {
+    "*": {
+      "testing": [
+        "./dist/testing/index.d.ts"
+      ],
+      "cli": [
+        "./dist/cli/index.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist"
   ],
