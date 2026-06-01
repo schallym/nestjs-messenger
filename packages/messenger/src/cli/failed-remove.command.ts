@@ -43,16 +43,27 @@ export class FailedRemoveCommand extends CommandRunner {
       this.transports,
       this.senders,
     );
-    let ids: readonly string[] = params;
+    const showMessages = options.showMessages === true;
+
     if (options.all === true) {
+      // `--all` is an explicit "remove everything" — an empty transport is a no-op
+      // success, NOT a usage error (the operator already told us what to do).
       const views = await manager.list();
-      ids = views.map((view) => view.id);
+      if (views.length === 0) {
+        this.print('No failed messages.');
+        return;
+      }
+      for (const view of views) {
+        await this.removeOne(manager, view.id, showMessages);
+      }
+      return;
     }
-    if (ids.length === 0) {
+
+    if (params.length === 0) {
       throw new InvalidArgumentError('Specify at least one message id, or pass --all.');
     }
-    for (const id of ids) {
-      await this.removeOne(manager, id, options.showMessages === true);
+    for (const id of params) {
+      await this.removeOne(manager, id, showMessages);
     }
   }
 

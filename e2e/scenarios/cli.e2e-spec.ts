@@ -135,6 +135,15 @@ describe('CLI (spawned node process, real Redis)', () => {
     expect(await xlen(failedStream)).toBe(0);
   }, 40_000);
 
+  it('messenger:failed:remove --all on an empty transport is a no-op, not an error', async () => {
+    // The exact scenario a user hits running --all before anything has failed.
+    const result = await runCli(['messenger:failed:remove', '--all'], streams);
+
+    expect(result.stderr).not.toContain('InvalidArgumentError');
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain('No failed messages.');
+  }, 40_000);
+
   it('exits non-zero on an unknown command', async () => {
     const result = await runCli(['messenger:bogus'], streams);
     expect(result.code).not.toBe(0);

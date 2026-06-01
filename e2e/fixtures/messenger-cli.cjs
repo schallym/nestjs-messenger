@@ -80,7 +80,7 @@ Module({
 })(CliModule);
 
 async function bootstrap() {
-  await CommandFactory.run(CliModule, ['warn', 'error']);
+  await CommandFactory.run(CliModule, ['log', 'warn', 'error']);
 }
 bootstrap().then(
   () => process.exit(0),

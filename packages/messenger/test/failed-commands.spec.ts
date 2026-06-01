@@ -211,6 +211,14 @@ describe('messenger:failed:* commands', () => {
       expect(await h.failure.getMessageCount()).toBe(0);
     });
 
+    it('treats --all on an empty failure transport as a no-op, not a usage error', async () => {
+      const h = await harness(); // nothing dead-lettered
+      const command = new FailedRemoveCommand(h.options, h.transports, h.senders);
+
+      await expect(command.run([], { all: true })).resolves.toBeUndefined();
+      expect(output()).toContain('No failed messages.');
+    });
+
     it('reports an unknown id', async () => {
       const h = await harness();
       const command = new FailedRemoveCommand(h.options, h.transports, h.senders);
