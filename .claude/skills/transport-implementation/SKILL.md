@@ -64,6 +64,32 @@ Why this matters when implementing:
 
 If you're not familiar with Redis Streams, read https://redis.io/docs/data-types/streams/ before opening a PR. The mental model is fundamentally different from list-based queues (LPUSH/BRPOP) and from BullMQ's job-state model.
 
+## Push/streaming brokers (Google Pub/Sub): bridging to `get()`
+
+The Pub/Sub transport (`@schally/nestjs-messenger-transport-google-pubsub`) consumes via a
+**streaming pull** (`subscription.on('message')`), which is push-based, and bridges it to
+our pull-based `get(signal): AsyncIterable<Envelope>`. Hard-won lessons that generalize to
+any push/lease broker:
+
+- **Keep ONE streaming subscription at the instance level**, created lazily and closed only
+  in `close()` — NOT one per `get()` call. The conformance does `transport.ack(await receiveOne(...))`,
+  which disposes the `get()` iterator (runs its `finally`) **before** `ack()` is called. If
+  the subscription/lease is tied to a single `get()` invocation, `message.ack()` is already
+  invalid by ack time. An instance-level subscription keeps acks valid for the transport's
+  lifetime (like a Redis connection), and lets concurrent `get()` loops share one stream.
+- **`reject()` can't mutate the leased message**, so redeliver the Redis way: **re-publish**
+  a copy with an incremented `RedeliveryStamp` and `ack()` the original. Native `nack`
+  redelivers the *same* payload (no stamp bump) and fails conformance scenario 3.
+- **Retention is subscription-scoped.** Pub/Sub only retains a message for subscriptions
+  that exist *at publish time*. Since a transport is both sender and receiver for its alias,
+  `send()` must ensure the **subscription** (not just the topic) before publishing, or the
+  conformance's `send()`-then-`get()` loses the message.
+- **No native per-message delay** → opt out (`capabilities.delayedDelivery: false`) and
+  ignore `DelayStamp` (document it; retries become immediate).
+- **Can't enumerate without consuming** → do NOT declare `ListableReceiver`/`MessageRetriever`;
+  such a transport can't back the `messenger:failed:*` CLI.
+- **Test against the emulator**, never a mock (`PUBSUB_EMULATOR_HOST`; docker-compose service).
+
 ## Error mapping (this is where people get it wrong)
 
 Wrap every native error from the broker SDK into our typed hierarchy:

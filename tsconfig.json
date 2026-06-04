@@ -1,5 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "files": [],
-  "references": [{ "path": "./packages/messenger" }, { "path": "./packages/transport-redis" }]
+  "references": [
+    { "path": "./packages/messenger" },
+    { "path": "./packages/transport-redis" },
+    { "path": "./packages/transport-google-pubsub" }
+  ]
 }

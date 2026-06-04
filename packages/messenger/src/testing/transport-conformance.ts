@@ -201,9 +201,11 @@ export function runTransportConformanceTests(options: TransportConformanceOption
       await transport.send(new Envelope(new ConformanceMessage('slow')));
       const controller = new AbortController();
       const order: string[] = [];
+      const state = { processing: false };
 
       const consuming = (async () => {
         for await (const envelope of transport.get(controller.signal)) {
+          state.processing = true;
           await new Promise((resolve) => setTimeout(resolve, 50));
           // Mark processing done *before* ack: close() must not resolve until this
           // in-flight message is settled, so 'processed' is guaranteed before 'closed'
@@ -214,7 +216,13 @@ export function runTransportConformanceTests(options: TransportConformanceOption
         }
       })();
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Wait until a message is genuinely in-flight before closing. Gating on this rather
+      // than a fixed sleep keeps the test correct regardless of a transport's delivery
+      // latency (e.g. a streaming pull's connection setup), while still proving close()
+      // blocks until the in-flight message settles.
+      while (!state.processing) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
       await transport.close();
       order.push('closed');
       await consuming;

@@ -16,6 +16,9 @@ const config: Config = {
     '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
   },
   testTimeout: 30_000,
+  // Real broker SDKs (ioredis, the Pub/Sub gRPC client) keep background reconnect timers
+  // that can outlive the suite even after close(); force-exit rather than hang CI.
+  forceExit: true,
 };
 
 export default config;

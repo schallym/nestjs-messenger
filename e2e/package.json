@@ -8,7 +8,9 @@
     "test:e2e": "jest --config jest.config.ts --runInBand --passWithNoTests"
   },
   "devDependencies": {
+    "@google-cloud/pubsub": "^4.9.0",
     "@schally/nestjs-messenger": "workspace:*",
+    "@schally/nestjs-messenger-transport-google-pubsub": "workspace:*",
     "@schally/nestjs-messenger-transport-redis": "workspace:*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",

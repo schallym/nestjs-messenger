@@ -9,6 +9,7 @@ updates:
       - '/'
       - '/packages/messenger'
       - '/packages/transport-redis'
+      - '/packages/transport-google-pubsub'
       - '/e2e'
     schedule:
       interval: weekly

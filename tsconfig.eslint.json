@@ -16,7 +16,10 @@
       "@schally/nestjs-messenger": ["packages/messenger/src/index.ts"],
       "@schally/nestjs-messenger/cli": ["packages/messenger/src/cli/index.ts"],
       "@schally/nestjs-messenger/testing": ["packages/messenger/src/testing/index.ts"],
-      "@schally/nestjs-messenger-transport-redis": ["packages/transport-redis/src/index.ts"]
+      "@schally/nestjs-messenger-transport-redis": ["packages/transport-redis/src/index.ts"],
+      "@schally/nestjs-messenger-transport-google-pubsub": [
+        "packages/transport-google-pubsub/src/index.ts"
+      ]
     }
   },
   "include": ["packages/**/*.ts", "e2e/**/*.ts", "*.ts", "*.mjs", "*.cjs"],
