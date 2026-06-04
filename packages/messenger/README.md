@@ -95,6 +95,7 @@ node dist/cli messenger:failed:remove [id...] --all
 metadata) → routed by the **MessageBus** through a **Middleware** pipeline → to a
 **Transport** (Sender/Receiver) → consumed by a **Worker** → handled by a **Handler**.
 Failures retry per the configured strategy, then route to the **failure transport**.
+**Bus** (`MessageBus`) and **Worker** are the main entry points.
 
 ## Writing a transport
 

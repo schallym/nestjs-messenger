@@ -73,7 +73,7 @@ validated (a typo throws `TransportConnectionError`) and handed to ioredis for p
 | `readBatchSize` | `10` | Max messages read per poll. |
 | `redisOptions` | `{}` | Extra ioredis options merged into the connection. |
 
-## How it works / quirks
+## How it works
 
 - **Delayed delivery** (`DelayStamp`): not-yet-due messages are held in a sorted set
   keyed by due-time and atomically promoted to the stream when due (a small Lua drain

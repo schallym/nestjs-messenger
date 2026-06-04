@@ -68,7 +68,7 @@ export PUBSUB_EMULATOR_HOST=localhost:8685
 | `ackDeadlineSeconds` | `60` | Ack deadline for an auto-created subscription. |
 | `clientConfig` | `{}` | Extra `@google-cloud/pubsub` client options. |
 
-## How it works / quirks
+## How it works
 
 - **One topic + one subscription** per transport instance; the message body carries the
   serialized envelope (`{ body, headers }`) in its `data` payload (no Pub/Sub attribute
