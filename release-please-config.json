@@ -20,7 +20,8 @@
   "packages": {
     "packages/messenger": {},
     "packages/transport-redis": {},
-    "packages/transport-google-pubsub": {}
+    "packages/transport-google-pubsub": {},
+    "packages/transport-kafka": {}
   },
   "plugins": ["node-workspace"]
 }

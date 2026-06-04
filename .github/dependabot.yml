@@ -10,6 +10,7 @@ updates:
       - '/packages/messenger'
       - '/packages/transport-redis'
       - '/packages/transport-google-pubsub'
+      - '/packages/transport-kafka'
       - '/e2e'
     schedule:
       interval: weekly
