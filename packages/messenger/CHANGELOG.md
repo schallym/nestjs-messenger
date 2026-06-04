@@ -1,5 +1,16 @@
 # @schally/nestjs-messenger
 
+## [1.0.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.3...nestjs-messenger-v1.0.0) (2026-06-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* up versions to 1.0.0
+
+### Features
+
+* up versions to 1.0.0 ([d51a578](https://github.com/schallym/nestjs-messenger/commit/d51a578c669a41efc7b19a3081d2a70b8b9de082))
+
 ## [0.1.3](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.2...nestjs-messenger-v0.1.3) (2026-06-01)
 
 
