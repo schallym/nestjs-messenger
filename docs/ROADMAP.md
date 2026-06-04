@@ -124,19 +124,11 @@ Order of attack. Each milestone is a PR-sized chunk and a natural prompt for Cla
 
 **Prompt:** "Write docs for v0.1.0. README quickstart should be readable in 5 minutes and runnable in 10. Cover: install, define a message, define a handler, configure routing, dispatch, run the worker. Include the BullMQ migration guide showing how a typical BullMQ codebase maps to the messenger API."
 
-## Deferred to v0.2
-
-- transport-amqp (RabbitMQ)
-- transport-doctrine (TypeORM/Prisma)
-- transport-google-pubsub
-- Scheduler component
-- Multiple buses (command/query/event split)
-- OpenTelemetry middleware
-
 ## Deferred to v1.0
 
-- Stamps documentation site
-- Devtools UI (à la Bull Board)
-- transport-sqs, transport-kafka
-- Stable API guarantee
-- Optional BullMQ-backed transport (`transport-redis-bullmq`) if community demand exists
+- transport-google-pubsub
+- transport-sqs 
+- transport-kafka
+- transport-amqp (RabbitMQ)
+- Multiple buses (command/query/event split)
+- transport-doctrine (TypeORM/Prisma)

@@ -1,7 +1,5 @@
 # Shared broker harness for E2E — used by BOTH CI and local dev (`pnpm dev:brokers`).
-# v0.1 only ships the Redis Streams transport, so Redis is the only service here.
-# v0.2 transports (RabbitMQ, Postgres, Pub/Sub) get added alongside their packages;
-# see the e2e-testing skill for the full target compose file.
+# Each transport package that needs a real backend adds its service here.
 services:
   redis:
     image: redis:7-alpine
@@ -12,3 +10,15 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
+
+  # Google Cloud Pub/Sub emulator for @schally/nestjs-messenger-transport-google-pubsub.
+  # Clients connect via PUBSUB_EMULATOR_HOST=localhost:8685 (no credentials needed).
+  pubsub:
+    image: messagebird/gcloud-pubsub-emulator:latest
+    ports:
+      - '8685:8681'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8681/ || exit 1']
+      interval: 2s
+      timeout: 2s
+      retries: 20

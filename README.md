@@ -286,6 +286,7 @@ onion model and stamp-manipulation rules.
 |---|---|
 | [`@schally/nestjs-messenger`](packages/messenger) | The bus, pipeline, envelope/stamps, retry, failure transport, NestJS module, in-memory transport, conformance suite, and CLI. |
 | [`@schally/nestjs-messenger-transport-redis`](packages/transport-redis) | The reference transport, built on **Redis Streams** (`ioredis`, not BullMQ). |
+| [`@schally/nestjs-messenger-transport-google-pubsub`](packages/transport-google-pubsub) | Google Cloud **Pub/Sub** transport (`@google-cloud/pubsub`). No native delay; not a failure-inspection backend. |
 
 Subpath exports: `@schally/nestjs-messenger` (core + NestJS), `…/cli` (worker + failure
 commands), `…/testing` (`runTransportConformanceTests`, `ConformanceMessage`).

@@ -19,7 +19,8 @@
   ],
   "packages": {
     "packages/messenger": {},
-    "packages/transport-redis": {}
+    "packages/transport-redis": {},
+    "packages/transport-google-pubsub": {}
   },
   "plugins": ["node-workspace"]
 }
