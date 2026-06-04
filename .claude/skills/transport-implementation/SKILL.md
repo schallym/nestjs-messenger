@@ -90,6 +90,31 @@ any push/lease broker:
   such a transport can't back the `messenger:failed:*` CLI.
 - **Test against the emulator**, never a mock (`PUBSUB_EMULATOR_HOST`; docker-compose service).
 
+## Offset-log brokers (Kafka): commits, not per-message acks
+
+The Kafka transport (`@schally/nestjs-messenger-transport-kafka`) consumes via
+`consumer.run({ eachMessage })` with **`autoCommit: false`**, buffering raw messages and
+decoding/yielding from `get()`. The offset model changes how ack works:
+
+- **`ack()` = commit the message's offset** (`commitOffsets([{ topic, partition, offset: offset+1 }])`).
+  Commit only on `ack`/`reject` (never auto-commit) so an un-acked message is reprocessed
+  after a restart — at-least-once. Out-of-order acks rewind the committed offset, so run
+  **one worker per partition** in production (Kafka's model). The conformance's concurrent
+  scenario still passes because in-run delivery is once-each regardless of commit order.
+- **`reject()` re-publishes** a copy with an incremented `RedeliveryStamp` and commits past
+  the original (Kafka has no per-message nack) — same pattern as Pub/Sub/Redis.
+- **`fromBeginning: true`** so a fresh consumer reads messages published before it joined
+  (the conformance's `send()`-then-`get()`). Kafka retains the log regardless of consumers.
+- **1 MB default message cap.** Kafka rejects messages over `message.max.bytes` (~1 MB),
+  and the consumer won't fetch them past `maxBytesPerPartition`. Expose a `maxMessageBytes`
+  option wiring the topic config + consumer fetch size, and raise it (plus the broker
+  config) for the conformance's 1 MB payload.
+- **No delay / not listable** — same opt-outs as Pub/Sub.
+- **Use `node:assert` `ok(this.consumer)`** to narrow the lazily-created client where TS
+  can't prove it's set; `ok()` is a call, not a branch, so it costs no coverage.
+- **Run a real single-node KRaft broker** (no Zookeeper) in CI/dev; set
+  `KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0` so consumer groups join fast.
+
 ## Error mapping (this is where people get it wrong)
 
 Wrap every native error from the broker SDK into our typed hierarchy:

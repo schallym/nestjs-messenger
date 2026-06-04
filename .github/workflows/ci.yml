@@ -42,7 +42,7 @@ jobs:
     name: Unit tests + coverage
     runs-on: ubuntu-latest
     # Transport packages test against a real broker (the conformance suite), so the
-    # coverage job needs Redis and the Pub/Sub emulator. Other packages ignore them.
+    # coverage job needs Redis, the Pub/Sub emulator, and Kafka. Other packages ignore them.
     services:
       redis:
         image: redis:7-alpine
@@ -62,6 +62,30 @@ jobs:
           --health-interval 2s
           --health-timeout 2s
           --health-retries 20
+      kafka:
+        image: apache/kafka:3.8.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_NODE_ID: 1
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+          KAFKA_MESSAGE_MAX_BYTES: 10485760
+          KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
+        options: >-
+          --health-cmd "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 20
+          --health-start-period 15s
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -76,6 +100,7 @@ jobs:
           REDIS_DSN: redis://localhost:6379
           PUBSUB_EMULATOR_HOST: localhost:8685
           PUBSUB_PROJECT_ID: messenger-test
+          KAFKA_BROKERS: localhost:9092
       - name: Upload coverage
         uses: codecov/codecov-action@v6
         with:
@@ -103,6 +128,7 @@ jobs:
           REDIS_DSN: redis://localhost:6379
           PUBSUB_EMULATOR_HOST: localhost:8685
           PUBSUB_PROJECT_ID: messenger-test
+          KAFKA_BROKERS: localhost:9092
       - name: Stop brokers
         if: always()
         run: docker compose -f e2e/docker-compose.yml down -v
