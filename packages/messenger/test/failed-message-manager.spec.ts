@@ -151,7 +151,7 @@ describe('FailedMessageManager', () => {
       async *list(): AsyncIterableIterator<Envelope> {
         yield new Envelope(new OrderMessage('no-id'));
       },
-      // eslint-disable-next-line unicorn/no-useless-undefined
+
       find: (): Promise<Envelope | undefined> => Promise.resolve(undefined),
       ack: () => Promise.resolve(),
     };

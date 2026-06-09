@@ -46,7 +46,7 @@ describe('failed-message presenter', () => {
     });
 
     it('renders placeholders for a message with no error or timestamp', () => {
-      const row = renderFailedMessageTable([sparseView]).split('\n')[2] ?? '';
+      const row = renderFailedMessageTable([sparseView]).split('\n', 3)[2] ?? '';
       // failedAt and error both collapse to "-"
       expect(row).toContain('BareMessage');
       expect(row.match(/-/g)?.length).toBeGreaterThanOrEqual(2);
