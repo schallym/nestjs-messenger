@@ -102,7 +102,7 @@ jobs:
           PUBSUB_PROJECT_ID: messenger-test
           KAFKA_BROKERS: localhost:9092
       - name: Upload coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: packages/*/coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
