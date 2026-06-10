@@ -46,6 +46,28 @@ describe('mapRedisError', () => {
     expect(mapped).toBeInstanceOf(TransportError);
     expect(mapped.message).toContain('raw string failure');
   });
+
+  it('classifies host-realm error shapes (not instanceof Error) by their socket code', () => {
+    // e.g. node's AggregateError for a refused dual-stack connect, as seen from inside
+    // a vm-based runner: code present, message empty or not even a string.
+    expect(mapRedisError('send', { code: 'ECONNREFUSED', message: '' })).toBeInstanceOf(
+      TransportConnectionError,
+    );
+    expect(mapRedisError('send', { code: 'ECONNREFUSED', message: 7 })).toBeInstanceOf(
+      TransportConnectionError,
+    );
+  });
+
+  it('maps a NOGROUP message on a host-realm error shape to TransportNotFoundError', () => {
+    expect(mapRedisError('read', { message: 'NOGROUP No such consumer group' })).toBeInstanceOf(
+      TransportNotFoundError,
+    );
+  });
+
+  it('handles null', () => {
+    const nullish = JSON.parse('null') as unknown;
+    expect(mapRedisError('send', nullish)).toBeInstanceOf(TransportError);
+  });
 });
 
 describe('isBusyGroupError', () => {
@@ -59,5 +81,11 @@ describe('isBusyGroupError', () => {
 
   it('rejects a non-Error value', () => {
     expect(isBusyGroupError('BUSYGROUP')).toBe(false);
+  });
+
+  it('recognises BUSYGROUP on a host-realm error shape (not instanceof Error)', () => {
+    expect(isBusyGroupError({ message: 'BUSYGROUP Consumer Group name already exists' })).toBe(
+      true,
+    );
   });
 });

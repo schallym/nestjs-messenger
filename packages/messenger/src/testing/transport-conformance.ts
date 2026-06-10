@@ -181,6 +181,44 @@ export function runTransportConformanceTests(options: TransportConformanceOption
       expect(await receiveWithin(transport, 40)).toBeUndefined();
     });
 
+    it('treats a reject of a never-delivered envelope as a no-op (publishes no copy)', async () => {
+      const sent = await transport.send(new Envelope(new ConformanceMessage('m-1')));
+
+      // Sent but never received: there is no in-flight delivery to settle, so the
+      // transport must not publish a redelivery copy (reject is settle-once-per-delivery).
+      await transport.reject(sent);
+
+      const received = await receiveOne(transport);
+      expect(received.last(RedeliveryStamp)).toBeUndefined();
+      await transport.ack(received);
+
+      expect(await receiveWithin(transport, 40)).toBeUndefined();
+    });
+
+    it('treats a reject after an ack of the same delivery as a no-op (no redelivery)', async () => {
+      await transport.send(new Envelope(new ConformanceMessage('m-1')));
+
+      const received = await receiveOne(transport);
+      await transport.ack(received);
+      await transport.reject(received);
+
+      expect(await receiveWithin(transport, 40)).toBeUndefined();
+    });
+
+    it('treats an ack after a reject as a no-op (the redelivered copy survives)', async () => {
+      await transport.send(new Envelope(new ConformanceMessage('m-1')));
+
+      const received = await receiveOne(transport);
+      await transport.reject(received);
+      await transport.ack(received);
+
+      const redelivered = await receiveOne(transport);
+      expect(expectStamp(redelivered.last(RedeliveryStamp)).retryCount).toBe(1);
+      await transport.ack(redelivered);
+
+      expect(await receiveWithin(transport, 40)).toBeUndefined();
+    });
+
     it('ends the get() iterator cleanly when the AbortSignal is aborted', async () => {
       await transport.send(new Envelope(new ConformanceMessage('m-1')));
       const controller = new AbortController();
@@ -228,6 +266,37 @@ export function runTransportConformanceTests(options: TransportConformanceOption
       await consuming;
 
       expect(order).toStrictEqual(['processed', 'closed']);
+    });
+
+    it('waits for an in-flight reject to settle before close() resolves', async () => {
+      await transport.send(new Envelope(new ConformanceMessage('slow-reject')));
+      const controller = new AbortController();
+      const order: string[] = [];
+      const state = { processing: false };
+
+      const consuming = (async () => {
+        for await (const envelope of transport.get(controller.signal)) {
+          state.processing = true;
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          // 'rejected' is pushed only once reject() has fully settled the delivery —
+          // the re-publish AND the acknowledge/commit of the original. close() must not
+          // resolve before that whole sequence: a transport whose close() drain tracks
+          // only the re-publish lets the trailing acknowledge race the disconnect and
+          // strand the original (duplicate after restart).
+          await transport.reject(envelope);
+          order.push('rejected');
+          controller.abort();
+        }
+      })();
+
+      while (!state.processing) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      await transport.close();
+      order.push('closed');
+      await consuming;
+
+      expect(order).toStrictEqual(['rejected', 'closed']);
     });
 
     it('round-trips a large (1 MB) payload intact', async () => {

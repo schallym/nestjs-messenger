@@ -1,0 +1,76 @@
+{
+  "name": "@schally/nestjs-messenger-transport-sql",
+  "version": "1.0.0",
+  "description": "PostgreSQL/MySQL transport for @schally/nestjs-messenger — raw SQL over pg/mysql2, no ORM (see ADR-006).",
+  "license": "MIT",
+  "keywords": [
+    "nestjs",
+    "messenger",
+    "postgresql",
+    "postgres",
+    "mysql",
+    "mariadb",
+    "skip-locked",
+    "listen-notify",
+    "transport",
+    "message-queue",
+    "symfony-messenger",
+    "typescript"
+  ],
+  "homepage": "https://github.com/schallym/nestjs-messenger/tree/main/packages/transport-sql#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schallym/nestjs-messenger.git",
+    "directory": "packages/transport-sql"
+  },
+  "bugs": {
+    "url": "https://github.com/schallym/nestjs-messenger/issues"
+  },
+  "type": "commonjs",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -p tsconfig.spec.json",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist coverage *.tsbuildinfo .turbo"
+  },
+  "peerDependencies": {
+    "@schally/nestjs-messenger": "^1.0.0",
+    "mysql2": "^3.11.0",
+    "pg": "^8.11.3"
+  },
+  "peerDependenciesMeta": {
+    "mysql2": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@schally/nestjs-messenger": "workspace:*",
+    "@types/jest": "^29.5.14",
+    "@types/pg": "^8.11.10",
+    "jest": "^29.7.0",
+    "mysql2": "^3.11.4",
+    "pg": "^8.13.1"
+  }
+}

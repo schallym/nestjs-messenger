@@ -21,8 +21,19 @@ const CONNECTION_SOCKET_CODES = new Set<string>([
   'EAI_AGAIN',
 ]);
 
+/**
+ * Deliberately duck-typed rather than `instanceof Error`: errors minted by Node's core
+ * (e.g. the AggregateError of a refused connection) belong to the host realm, and an
+ * `instanceof` check fails for them inside a vm (as under jest).
+ */
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error !== null && typeof error === 'object' && 'message' in error) {
+    const message: unknown = error.message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
 }
 
 function errorCode(error: unknown): number | string | undefined {

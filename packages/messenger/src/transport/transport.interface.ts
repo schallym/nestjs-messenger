@@ -2,7 +2,11 @@ import type { Envelope } from '../envelope';
 
 /** The "send" half of a transport: where a message goes. */
 export interface Sender {
-  /** Send an envelope. MUST return a new envelope carrying SentStamp + TransportMessageIdStamp. */
+  /**
+   * Send an envelope. MUST return a new envelope carrying a TransportMessageIdStamp.
+   * The SentStamp is added by SendMessageMiddleware, which knows the routing alias —
+   * transports never add it (M2 stamp-ownership decision; see the transport-implementation skill).
+   */
   send(envelope: Envelope): Promise<Envelope>;
 }
 
@@ -14,10 +18,20 @@ export interface Receiver {
    */
   get(signal: AbortSignal): AsyncIterable<Envelope>;
 
-  /** Mark a message as successfully processed. MUST be idempotent. */
+  /**
+   * Mark a message as successfully processed. MUST be idempotent: a second ack of the
+   * same delivery is a no-op. Idempotency MUST derive from the transport's bounded
+   * in-flight delivery registry (or a broker operation that is naturally idempotent),
+   * never from an ever-growing set of remembered settled ids (ADR-007).
+   */
   ack(envelope: Envelope): Promise<void>;
 
-  /** Mark a message as failed. The transport decides redelivery vs. drop. MUST be idempotent. */
+  /**
+   * Mark a message as failed. The transport decides redelivery vs. drop. Redelivery
+   * publishes a copy, which is not idempotent, so reject MUST settle at most once per
+   * delivery: rejecting an envelope that is not currently in flight (already settled,
+   * or never delivered by this instance) is a no-op (ADR-007).
+   */
   reject(envelope: Envelope): Promise<void>;
 }
 

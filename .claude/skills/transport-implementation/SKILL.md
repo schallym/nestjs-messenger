@@ -17,10 +17,10 @@ export interface TransportInterface {
   /** Pull messages. MUST be cancellable via AbortSignal. MUST yield envelopes with ReceivedStamp + TransportMessageIdStamp. */
   get(signal: AbortSignal): AsyncIterable<Envelope>;
 
-  /** Mark message as successfully processed. Idempotent. */
+  /** Mark message as successfully processed. Idempotent (see "Ack/reject semantics"). */
   ack(envelope: Envelope): Promise<void>;
 
-  /** Mark message as failed. Transport decides whether to redeliver, DLQ, or drop based on RedeliveryStamp count. */
+  /** Mark message as failed. Redelivers at most once per in-flight delivery; otherwise a no-op. */
   reject(envelope: Envelope): Promise<void>;
 
   /** Release resources. MUST wait for in-flight ack/reject to settle. */
@@ -79,7 +79,7 @@ any push/lease broker:
   lifetime (like a Redis connection), and lets concurrent `get()` loops share one stream.
 - **`reject()` can't mutate the leased message**, so redeliver the Redis way: **re-publish**
   a copy with an incremented `RedeliveryStamp` and `ack()` the original. Native `nack`
-  redelivers the *same* payload (no stamp bump) and fails conformance scenario 3.
+  redelivers the *same* payload (no stamp bump) and fails the redelivery-stamp scenario.
 - **Retention is subscription-scoped.** Pub/Sub only retains a message for subscriptions
   that exist *at publish time*. Since a transport is both sender and receiver for its alias,
   `send()` must ensure the **subscription** (not just the topic) before publishing, or the
@@ -130,21 +130,46 @@ This matters because middlewares above (e.g., retry strategy) decide what to do 
 
 - `ack` is called **after** the handler returned successfully **and** all stamps are committed.
 - `reject` is called when the handler threw. The RetryMiddleware decides whether the retry budget is exhausted; if exhausted, the envelope is sent to the failure transport (if configured) and then ack'd to remove it from the queue.
-- **Never ack and reject the same envelope.** Track state with a `WeakSet` if needed.
-- **Idempotency:** ack/reject must be safe to call twice (no-op the second time). Brokers sometimes deliver twice during failover.
+- **Idempotency:** ack/reject must be safe to call twice, and in either order, for the same delivery (no-op after the first settle). Brokers sometimes deliver twice during failover. The double-settle and cross-settle conformance scenarios pin this.
+- **Idempotency comes from the in-flight registry, never from a settled-ids set (ADR-007).**
+  The map/set of delivered-but-unsettled ids — which `close()` already needs for its drain —
+  is the *only* settle state a transport may keep. Settling removes the entry; a second
+  settle finds nothing and no-ops. Do NOT remember settled ids: that set grows by one string
+  per processed message for the worker's lifetime, and a stale entry turns a legitimate ack
+  of a reused id into a silent no-op (the SQL re-created-table hang).
+  - `reject` **must** be gated strictly on in-flight membership: redelivery *re-publishes a
+    copy*, which is not idempotent, so it runs at most once per delivery — and never for an
+    envelope the instance didn't deliver (re-publishing without settling the original would
+    just mint a duplicate).
+  - `ack` releases the in-flight entry and then performs the broker acknowledge. Where the
+    broker op is id-addressed and naturally idempotent (Redis `XACK`+`XDEL`, SQL `DELETE`)
+    it runs **ungated** — required anyway so that acking a message located via `find()`
+    (failure inspection; the ack-via-find listable scenario) deletes it. Where settling
+    needs the in-flight handle (Kafka's offset coordinate, Pub/Sub's leased `Message`),
+    a missing handle means no-op.
+  - `InMemoryTransport` is the reference implementation of this model.
+- **The entire settle is ONE `pending`-tracked promise.** `close()` takes its
+  `Promise.allSettled(pending)` snapshot the instant the in-flight drain empties — i.e.
+  mid-settle. A reject that re-publishes in one tracked promise and commits/acks the
+  original in a second (or in an untracked sync call) lets `close()` resolve between the
+  two and race the disconnect, stranding the original (a duplicate after restart). Compose
+  multi-step settles into one promise passed to a single `run()` — see Kafka's
+  `redeliverAndCommit` and Pub/Sub's `redeliverThenAck`. The close-during-reject
+  conformance scenario pins this.
 
 ## Graceful shutdown
 
 `close()` must:
 
 1. Stop pulling new messages (cancel any internal pollers / consumer tags / XREADGROUP loops via AbortSignal).
+   - If one fetch yields several entries (batched `XREADGROUP`), re-check `signal.aborted || closing` **between entries**, not only per batch: the generator suspends at each `yield`, so `close()` can resolve while the consumer settles entry k — yielding k+1 afterwards registers in-flight state whose settle hits a closed connection. Un-yielded entries stay pending and are reclaimed (Redis: `XAUTOCLAIM`).
 2. Wait for in-flight ack/reject promises to settle (use a counter).
 3. Close broker connections.
 4. Resolve only when all of the above are done.
 
 Test this with a scenario: dispatch 10 slow messages, call `close()` mid-flight, assert all 10 finished before the promise resolved.
 
-## The conformance suite (v0.1 = 10 scenarios)
+## The conformance suite (v0.1 = 15 scenarios)
 
 Every transport package has this in its test file:
 
@@ -166,31 +191,40 @@ runTransportConformanceTests({
 });
 ```
 
-**The 10 scenarios shipped in v0.1:**
+**The 15 scenarios shipped in v0.1** (in suite order — prefer the *names* over the ordinals
+in cross-references; ordinals rot when the suite grows):
 
 1. `send` then `get` yields the same message (round-trip)
 2. `ack` removes the message; subsequent `get` doesn't re-deliver it
 3. `reject` triggers redelivery with incremented `RedeliveryStamp.retryCount`
 4. `ack` called twice is a no-op on the second call (idempotent)
 5. `reject` called twice is a no-op on the second call (idempotent)
-6. `AbortSignal` aborted mid-`get` causes the iterator to return cleanly
-7. `close()` called while a handler is mid-processing waits for completion
-8. Large payload (1 MB) round-trips intact
-9. Payload with special characters (UTF-8 emoji, null bytes if supported, quotes) round-trips intact
-10. `DelayStamp` is honored within ±200ms (skipped if `capabilities.delayedDelivery === false`)
+6. `reject` of a **never-delivered** envelope (sent but not received) is a no-op — no
+   redelivery copy is published (added with ADR-007)
+7. `reject` **after** `ack` of the same delivery is a no-op — no redelivery (added with ADR-007)
+8. `ack` **after** `reject` of the same delivery is a no-op — the redelivered copy survives
+   it (added with ADR-007)
+9. `AbortSignal` aborted mid-`get` causes the iterator to return cleanly
+10. `close()` called while a handler is mid-processing waits for completion (settle via ack)
+11. `close()` waits for an in-flight **reject** to settle — the whole settle, re-publish
+    *and* acknowledge of the original (added with ADR-007)
+12. Large payload (1 MB) round-trips intact
+13. Payload with special characters (UTF-8 emoji, null bytes if supported, quotes) round-trips intact
+14. Two concurrent consumers never receive the same message twice
+15. `DelayStamp` is honored within ±200ms (skipped if `capabilities.delayedDelivery === false`)
 
 **Listable transports (added in M7).** Declare `capabilities.listable: true` when the
 transport implements `ListableReceiver` + `MessageRetriever` (e.g. it can serve as a
 `failureTransport`). That unlocks two more scenarios:
 
-11. `ack()` of a message located via `find()` **removes** it from `list()` — ack *deletes*,
+16. `ack()` of a message located via `find()` **removes** it from `list()` — ack *deletes*,
     it is not merely "mark processed". On Redis this means `ack` = `XACK` **+ `XDEL`**.
-12. `reject()` redelivery re-appends under a **new** transport id and leaves **no stale
+17. `reject()` redelivery re-appends under a **new** transport id and leaves **no stale
     original** in `list()` (the old entry is `XDEL`'d after the re-`XADD`).
 
 **We grow the suite as bugs teach us new invariants.** When you fix a transport bug, add a scenario that would have caught it. Aim for the suite to outlive the bug.
 
-**Future scenarios** (not blocking v0.1): concurrent consumers don't double-process, stalled message reassignment, message ordering guarantees, transaction across send + commit, etc.
+**Future scenarios** (not blocking v0.1): stalled message reassignment, message ordering guarantees, transaction across send + commit, etc.
 
 ## Common mistakes
 
@@ -202,15 +236,18 @@ transport implements `ListableReceiver` + `MessageRetriever` (e.g. it can serve 
 - **For Redis Streams specifically: forgetting to `XACK` on success.** Without ack, the message stays in the consumer group's pending list and gets re-delivered after the reaper's claim interval.
 - **Poison messages loop forever.** A serializing transport will hit entries it can't decode (unregistered message type, malformed JSON). Do NOT let the decode error throw out of `get()` — the entry never gets acked and the stalled-reaper re-delivers it endlessly. Catch it, `XACK`/discard it (or DLQ it), and keep consuming. Note `SerializationError extends MessengerError`, NOT `TransportError`, so callers branching on `TransportError` won't catch it. (Found by the M6 conformance audit.)
 - **Serializing transports need the message classes.** The default `JsonSerializer` can encode anything but can only *decode* registered classes. Construct the transport's serializer with the app's message classes (`new JsonSerializer([FooMessage, ...])`). The conformance suite exports `ConformanceMessage` from `@schally/nestjs-messenger/testing` precisely so a serializing transport's factory can register it.
-- **`ack` must delete, not just acknowledge (M7).** Once a transport is `listable`, `ack` has to *remove* the entry, not merely clear the pending/processed flag — otherwise a message inspected via `find()` and acked by `messenger:failed:remove`/`:retry` still shows up in `list()`. On Redis: `XACK` **+ `XDEL`**, and the `reject()` redelivery path must `XDEL` the original after re-appending. Conformance scenarios 11–12 pin this.
+- **`ack` must delete, not just acknowledge (M7).** Once a transport is `listable`, `ack` has to *remove* the entry, not merely clear the pending/processed flag — otherwise a message inspected via `find()` and acked by `messenger:failed:remove`/`:retry` still shows up in `list()`. On Redis: `XACK` **+ `XDEL`**, and the `reject()` redelivery path must `XDEL` the original after re-appending. The two listable conformance scenarios pin this.
 - **Don't carry a `DelayStamp` into the failure transport.** A message that exhausts retries was last re-sent *with* a `DelayStamp`; that stamp must be stripped before routing to the failure transport (the `RetryMiddleware` does this), or the dead-letter sits in the failure transport's *delayed buffer* and never surfaces to `messenger:failed:show`/`list()` until something consumes that transport. (Found by the M7 e2e — the bug was invisible until inspection went through `list()` instead of `get()`.)
 - **Dates don't survive JSON round-trips.** A stamp field typed `Date` (e.g. `RedeliveryStamp.redeliveredAt`) comes back as an ISO **string** after a serializing transport's round-trip. Normalize at the read boundary (`new Date(value)`) rather than trusting the declared type.
+- **`instanceof Error` lies about host-realm errors.** Failures minted by Node's core (e.g. the `AggregateError` of a refused connection, since `localhost` resolves to both v4 and v6) belong to the host realm; inside a vm-based runner (jest), `error instanceof Error` is **false** for them, so an error mapper gated on it silently downgrades what should be a `TransportConnectionError` to a bare `TransportError`. Duck-type `code`/`message` (`typeof error === 'object' && 'code' in error`) instead. (Found by the SQL transport's unreachable-server tests; since fixed in every transport's mapper — keep new ones duck-typed.)
+- **Never ship a native dynamic `import()` in CJS dist for optional deps.** With `module: node16`, `await import('pg')` survives as a *real* dynamic import in the CommonJS output. Plain Node handles it, but any vm-based runner without ESM support — including a **consumer's own jest suite** — throws "dynamic import callback not specified", which a lazy-load wrapper then mislabels as a missing optional dependency. Load optional peers with `require` instead: still lazy, and interceptable by `jest.doMock` for the missing-dep test. (Found by the SQL transport's e2e run; unit tests under ts-jest masked it because ts-jest compiles `import()` down to `require`.)
+- **Settle state must be per-delivery, not per-id-forever (ADR-007).** The original transports kept a grow-forever `settled` set of ids for ack/reject idempotency. Two failures: unbounded memory on a long-lived worker (one retained string per processed message), and id reuse — DB-backed ids restart when the table (and its sequence) is dropped and re-created under a live instance, so the stale entry for old id 1 swallowed the legitimate ack of new id 1 and `close()` hung forever on the in-flight drain. Idempotency now derives from the in-flight registry (see "Ack/reject semantics"); the postgres `setup() re-creates a dropped schema` test consumes through the *same* instance as the regression pin. Residual caveat: don't hold an unsettled envelope across a schema drop/re-create — with per-delivery state, acking such a stale envelope performs a real id-addressed DELETE that can hit an innocent reused id (the old design failed in the opposite, observed-in-practice direction).
 
 ## Reference checklist before merging a transport
 
 - [ ] Implements `TransportInterface` with no `any`
 - [ ] Maps all SDK errors to our hierarchy
-- [ ] All conformance scenarios pass — the 10 core, plus 11–12 if `listable` (or capability-flagged opt-outs)
+- [ ] All conformance scenarios pass — the 15 core, plus the two listable ones if `listable` (or capability-flagged opt-outs)
 - [ ] Coverage meets the transport package threshold (100% on transport code, 95% on glue)
 - [ ] Graceful shutdown test exists and passes
 - [ ] Docker-compose entry added in `e2e/docker-compose.yml`

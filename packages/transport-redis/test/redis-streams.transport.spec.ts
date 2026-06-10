@@ -264,4 +264,58 @@ describe('RedisStreamsTransport (implementation specifics)', () => {
     await reaper.close();
     await deleteStream(stream);
   });
+
+  it('stops yielding mid-batch once the signal aborts between entries', async () => {
+    const stream = uniqueStream();
+    const transport = makeTransport(stream);
+    // Both messages sent before consuming so a single XREADGROUP batch holds them.
+    await transport.send(new Envelope(new ConformanceMessage('first')));
+    await transport.send(new Envelope(new ConformanceMessage('second')));
+
+    const controller = new AbortController();
+    const iterator = transport.get(controller.signal)[Symbol.asyncIterator]();
+    const first = await iterator.next();
+    if (first.done === true) {
+      throw new Error('expected the first batched entry to be yielded');
+    }
+    expect((first.value.message as ConformanceMessage).id).toBe('first');
+
+    controller.abort();
+
+    // The generator must re-check the signal between entries of the same batch: the
+    // second entry is never yielded and stays in the consumer group's pending list.
+    const second = await iterator.next();
+    expect(second.done).toBe(true);
+
+    await transport.ack(first.value);
+    await transport.close();
+    await deleteStream(stream);
+  });
+
+  it('stops yielding mid-batch once close() has resolved between entries', async () => {
+    const stream = uniqueStream();
+    const transport = makeTransport(stream);
+    await transport.send(new Envelope(new ConformanceMessage('first')));
+    await transport.send(new Envelope(new ConformanceMessage('second')));
+
+    const controller = new AbortController();
+    const iterator = transport.get(controller.signal)[Symbol.asyncIterator]();
+    const first = await iterator.next();
+    if (first.done === true) {
+      throw new Error('expected the first batched entry to be yielded');
+    }
+
+    // close() starts while entry 1 is in flight and blocks on the drain; acking entry 1
+    // releases it. The generator is still suspended at the yield inside the batch loop.
+    const closePromise = transport.close();
+    await transport.ack(first.value);
+    await closePromise;
+
+    // Resuming the iterator after close() resolved must not deliver entry 2 (its ack
+    // would hit the quit connection and re-populate inFlight after the drain).
+    const second = await iterator.next();
+    expect(second.done).toBe(true);
+
+    await deleteStream(stream);
+  });
 });

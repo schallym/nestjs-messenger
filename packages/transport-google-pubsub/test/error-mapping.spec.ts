@@ -53,6 +53,17 @@ describe('mapPubSubError', () => {
     const nullish = JSON.parse('null') as unknown;
     expect(mapPubSubError('send', nullish)).toBeInstanceOf(TransportError);
   });
+
+  it('classifies host-realm error shapes (not instanceof Error) by their code', () => {
+    // e.g. node's AggregateError for a refused dual-stack connect, as seen from inside
+    // a vm-based runner: code present, message empty or not even a string.
+    expect(mapPubSubError('send', { code: 'ECONNREFUSED', message: '' })).toBeInstanceOf(
+      TransportConnectionError,
+    );
+    expect(mapPubSubError('send', { code: 14, message: 7 })).toBeInstanceOf(
+      TransportConnectionError,
+    );
+  });
 });
 
 describe('isAlreadyExistsError', () => {

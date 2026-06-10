@@ -2,5 +2,6 @@
   "packages/messenger": "1.0.0",
   "packages/transport-redis": "1.0.0",
   "packages/transport-google-pubsub": "1.0.0",
-  "packages/transport-kafka": "1.0.1"
+  "packages/transport-kafka": "1.0.1",
+  "packages/transport-sql": "1.0.0"
 }

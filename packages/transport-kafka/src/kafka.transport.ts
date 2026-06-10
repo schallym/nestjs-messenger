@@ -109,7 +109,6 @@ export class KafkaTransport implements TransportInterface {
   private readonly buffer: BufferedMessage[] = [];
   private readonly wakers = new Set<() => void>();
   private readonly inFlight = new Map<string, Coordinate>();
-  private readonly settled = new Set<string>();
   private readonly pending = new Set<Promise<unknown>>();
   private readonly drainWaiters: (() => void)[] = [];
   private producer: Producer | undefined;
@@ -169,31 +168,30 @@ export class KafkaTransport implements TransportInterface {
 
   async ack(envelope: Envelope): Promise<void> {
     const id = this.requireId(envelope);
-    if (this.settled.has(id)) {
+    const coordinate = this.inFlight.get(id);
+    if (coordinate === undefined) {
+      // Already settled, or never delivered by this instance: the offset to commit is
+      // gone with the in-flight entry, and forgetting settled deliveries immediately is
+      // what keeps per-instance state bounded (ADR-007).
       return;
     }
-    this.settled.add(id);
-    const coordinate = this.inFlight.get(id);
     this.releaseInFlight(id);
-    if (coordinate !== undefined) {
-      await this.run('ack', this.commit(coordinate.partition, coordinate.offset));
-    }
+    await this.run('ack', this.commit(coordinate.partition, coordinate.offset));
   }
 
   async reject(envelope: Envelope): Promise<void> {
     const id = this.requireId(envelope);
-    if (this.settled.has(id)) {
+    const coordinate = this.inFlight.get(id);
+    if (coordinate === undefined) {
+      // Already settled, or never delivered by this instance: redelivery re-publishes a
+      // copy (not idempotent), so it must run at most once per in-flight delivery (ADR-007).
       return;
     }
-    this.settled.add(id);
-    const coordinate = this.inFlight.get(id);
     this.releaseInFlight(id);
-    // Redeliver as a fresh published copy, then commit past the original (Kafka has no
-    // per-message nack that could carry our incremented RedeliveryStamp).
-    await this.run('reject', this.redeliver(envelope));
-    if (coordinate !== undefined) {
-      await this.run('reject', this.commit(coordinate.partition, coordinate.offset));
-    }
+    // One tracked promise for the whole settle: close()'s pending snapshot is taken the
+    // moment the in-flight drain empties, so a separately-tracked commit would escape it
+    // and race consumer.disconnect(), stranding the original's offset (ADR-007).
+    await this.run('reject', this.redeliverAndCommit(envelope, coordinate));
   }
 
   async close(): Promise<void> {
@@ -276,6 +274,16 @@ export class KafkaTransport implements TransportInterface {
       ],
       waitForLeaders: true,
     });
+  }
+
+  /**
+   * Redeliver as a fresh published copy, then commit past the original (Kafka has no
+   * per-message nack that could carry our incremented RedeliveryStamp). Commit strictly
+   * after the publish: committing first could drop the original before the copy exists.
+   */
+  private async redeliverAndCommit(envelope: Envelope, coordinate: Coordinate): Promise<void> {
+    await this.redeliver(envelope);
+    await this.commit(coordinate.partition, coordinate.offset);
   }
 
   private async redeliver(envelope: Envelope): Promise<void> {

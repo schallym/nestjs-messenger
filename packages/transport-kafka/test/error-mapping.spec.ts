@@ -42,8 +42,22 @@ describe('mapKafkaError', () => {
     expect(mapKafkaError('send', { type: 123 })).toBeInstanceOf(TransportError);
   });
 
-  it('ignores a code on a non-Error object', () => {
-    expect(mapKafkaError('send', { code: 'ECONNREFUSED' })).toBeInstanceOf(TransportError);
+  it('classifies host-realm error shapes (not instanceof Error) by code and name', () => {
+    // e.g. node's AggregateError for a refused dual-stack connect, as seen from inside
+    // a vm-based runner: code present, message empty or not even a string.
+    expect(mapKafkaError('send', { code: 'ECONNREFUSED', message: '' })).toBeInstanceOf(
+      TransportConnectionError,
+    );
+    expect(mapKafkaError('send', { code: 'ECONNREFUSED', message: 7 })).toBeInstanceOf(
+      TransportConnectionError,
+    );
+    expect(
+      mapKafkaError('connect', { name: 'KafkaJSConnectionError', message: 'down' }),
+    ).toBeInstanceOf(TransportConnectionError);
+  });
+
+  it('ignores a non-string name', () => {
+    expect(mapKafkaError('send', { name: 7, message: 'odd' })).toBeInstanceOf(TransportError);
   });
 
   it('ignores a non-string code on an Error', () => {

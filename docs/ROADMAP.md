@@ -131,4 +131,5 @@ Order of attack. Each milestone is a PR-sized chunk and a natural prompt for Cla
 - transport-kafka
 - transport-amqp (RabbitMQ)
 - Multiple buses (command/query/event split)
-- transport-doctrine (TypeORM/Prisma)
+- ~~transport-doctrine (TypeORM/Prisma)~~ → shipped as `transport-sql` on raw `pg`/`mysql2`
+  drivers, no ORM (see ADR-006)

@@ -181,18 +181,21 @@ describe('GooglePubSubTransport (implementation specifics)', () => {
     await deleteResources(topic, subscription);
   });
 
-  it('redelivers a never-received rejected envelope by re-publishing (no original to ack)', async () => {
+  it('treats reject of a never-received envelope as a no-op (publishes no copy)', async () => {
     const { topic, subscription } = uniqueNames();
     await preCreate(topic, subscription);
     const transport = makeTransport(topic, subscription);
 
+    // No in-flight delivery for this id: rejecting must not publish a redelivery copy
+    // (the original, never leased by this instance, would redeliver on its own anyway).
     await transport.reject(
       new Envelope(new ConformanceMessage('rj')).with(new TransportMessageIdStamp('absent')),
     );
+    await transport.send(new Envelope(new ConformanceMessage('real')));
     const received = await receiveOne(transport);
 
-    expect((received.message as ConformanceMessage).id).toBe('rj');
-    expect(received.last(RedeliveryStamp)?.retryCount).toBe(1);
+    expect((received.message as ConformanceMessage).id).toBe('real');
+    expect(received.last(RedeliveryStamp)).toBeUndefined();
     await transport.ack(received);
     await transport.close();
     await deleteResources(topic, subscription);
