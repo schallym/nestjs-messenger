@@ -1,5 +1,12 @@
 # @schally/nestjs-messenger
 
+## [1.1.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v1.0.0...nestjs-messenger-v1.1.0) (2026-06-10)
+
+
+### Features
+
+* add SQL transport for PostgreSQL and MySQL with raw SQL support ([#28](https://github.com/schallym/nestjs-messenger/issues/28)) ([bf52f70](https://github.com/schallym/nestjs-messenger/commit/bf52f70826f589362f0db467ebef76707f48ae40))
+
 ## [1.0.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v0.1.3...nestjs-messenger-v1.0.0) (2026-06-04)
 
 
