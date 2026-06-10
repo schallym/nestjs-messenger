@@ -21,7 +21,8 @@
     "packages/messenger": {},
     "packages/transport-redis": {},
     "packages/transport-google-pubsub": {},
-    "packages/transport-kafka": {}
+    "packages/transport-kafka": {},
+    "packages/transport-sql": {}
   },
   "plugins": ["node-workspace"]
 }

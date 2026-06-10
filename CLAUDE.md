@@ -78,7 +78,8 @@ packages/
     test/                       # unit tests (Jest)
   transport-redis/              # Redis Streams (NOT BullMQ)
   transport-amqp/               # RabbitMQ (v0.2)
-  transport-doctrine/           # SQL (v0.2)
+  transport-sql/                # PostgreSQL + MySQL on raw pg/mysql2, no ORM (ADR-006)
+  transport-kafka/              # Apache Kafka (kafkajs)
   transport-google-pubsub/      # Google Pub/Sub (v0.2)
 e2e/
   docker-compose.yml            # used by BOTH CI and local dev
@@ -102,7 +103,7 @@ The monorepo uses **pnpm workspaces** + **Turborepo**. Each package is independe
    - E2E tests do NOT count toward coverage.
    - PRs that drop coverage below threshold are rejected. Untestable lines use `/* istanbul ignore next -- @preserve <reason> */` with reviewer approval.
 
-3. **Transports are tested against a shared conformance suite.** `packages/messenger/src/testing/transport-conformance.ts` exports `runTransportConformanceTests(factory)`. **v0.1 ships 10 scenarios** (round-trip, ack idempotent, reject idempotent, redelivery count increment, AbortSignal cancels get(), close waits for in-flight, large payload, special chars, concurrent consumers, delay stamp honored or explicitly opted out). We grow the suite as bugs teach us new invariants.
+3. **Transports are tested against a shared conformance suite.** `packages/messenger/src/testing/transport-conformance.ts` exports `runTransportConformanceTests(factory)`. **v0.1 ships 15 scenarios** (round-trip, no redelivery once acked, redelivery count increment, ack idempotent, reject idempotent, reject of a never-delivered envelope is a no-op, reject-after-ack and ack-after-reject are no-ops, AbortSignal cancels get(), close waits for in-flight ack and for in-flight reject, large payload, special chars, concurrent consumers, delay stamp honored or explicitly opted out). We grow the suite as bugs teach us new invariants (see ADR-007 for the settle-idempotency scenarios).
 
 4. **No `any`. No `@ts-ignore`.** `strict: true` everywhere, including `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`. Use generics and discriminated unions.
 

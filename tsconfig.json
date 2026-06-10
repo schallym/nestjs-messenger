@@ -5,6 +5,7 @@
     { "path": "./packages/messenger" },
     { "path": "./packages/transport-redis" },
     { "path": "./packages/transport-google-pubsub" },
-    { "path": "./packages/transport-kafka" }
+    { "path": "./packages/transport-kafka" },
+    { "path": "./packages/transport-sql" }
   ]
 }

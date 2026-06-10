@@ -14,20 +14,39 @@ const CONNECTION_ERROR_CODES = new Set([
   'EAI_AGAIN',
 ]);
 
+/**
+ * Deliberately duck-typed rather than `instanceof Error`: errors minted by Node's core
+ * (e.g. the AggregateError of a refused connection) belong to the host realm, and an
+ * `instanceof` check fails for them inside a vm (as under jest).
+ */
+function messageProperty(error: unknown): string | undefined {
+  if (error !== null && typeof error === 'object' && 'message' in error) {
+    const message: unknown = error.message;
+    if (typeof message === 'string') {
+      return message;
+    }
+  }
+  return undefined;
+}
+
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const message = messageProperty(error);
+  return message !== undefined && message.length > 0 ? message : String(error);
 }
 
 function socketErrorCode(error: unknown): string | undefined {
-  if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
-    return error.code;
+  if (error !== null && typeof error === 'object' && 'code' in error) {
+    const code: unknown = error.code;
+    if (typeof code === 'string') {
+      return code;
+    }
   }
   return undefined;
 }
 
 /** Whether a Redis error signals that the consumer group already exists (idempotent create). */
 export function isBusyGroupError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes('BUSYGROUP');
+  return messageProperty(error)?.includes('BUSYGROUP') ?? false;
 }
 
 /**

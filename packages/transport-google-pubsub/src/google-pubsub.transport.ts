@@ -77,7 +77,6 @@ export class GooglePubSubTransport implements TransportInterface {
   private readonly buffer: Message[] = [];
   private readonly wakers = new Set<() => void>();
   private readonly inFlight = new Map<string, Message>();
-  private readonly settled = new Set<string>();
   private readonly pending = new Set<Promise<unknown>>();
   private readonly drainWaiters: (() => void)[] = [];
   private subscription: Subscription | undefined;
@@ -137,27 +136,30 @@ export class GooglePubSubTransport implements TransportInterface {
   // eslint-disable-next-line @typescript-eslint/require-await
   async ack(envelope: Envelope): Promise<void> {
     const id = this.requireId(envelope);
-    if (this.settled.has(id)) {
+    const message = this.inFlight.get(id);
+    if (message === undefined) {
+      // Already settled, or never delivered by this instance: the lease handle is gone
+      // with the in-flight entry, and forgetting settled deliveries immediately is what
+      // keeps per-instance state bounded (ADR-007).
       return;
     }
-    this.settled.add(id);
-    const message = this.inFlight.get(id);
     this.releaseInFlight(id);
-    message?.ack();
+    message.ack();
   }
 
   async reject(envelope: Envelope): Promise<void> {
     const id = this.requireId(envelope);
-    if (this.settled.has(id)) {
+    const message = this.inFlight.get(id);
+    if (message === undefined) {
+      // Already settled, or never delivered by this instance: redelivery re-publishes a
+      // copy (not idempotent), so it must run at most once per in-flight delivery (ADR-007).
       return;
     }
-    this.settled.add(id);
-    const message = this.inFlight.get(id);
     this.releaseInFlight(id);
-    // Redeliver as a fresh published copy, then ack the original (Pub/Sub's nack can't
-    // carry our incremented RedeliveryStamp).
-    await this.run('reject', this.redeliver(envelope));
-    message?.ack();
+    // One tracked promise for the whole settle: close()'s pending snapshot is taken the
+    // moment the in-flight drain empties, so an untracked trailing lease-ack would escape
+    // it and race subscription.close()'s buffer flush, stranding the original (ADR-007).
+    await this.run('reject', this.redeliverThenAck(envelope, message));
   }
 
   async close(): Promise<void> {
@@ -238,6 +240,16 @@ export class GooglePubSubTransport implements TransportInterface {
         throw error;
       }
     }
+  }
+
+  /**
+   * Redeliver as a fresh published copy, then ack the original (Pub/Sub's nack can't
+   * carry our incremented RedeliveryStamp). Ack strictly after the publish: releasing
+   * the lease first could drop the original before the copy exists.
+   */
+  private async redeliverThenAck(envelope: Envelope, message: Message): Promise<void> {
+    await this.redeliver(envelope);
+    message.ack();
   }
 
   private async redeliver(envelope: Envelope): Promise<void> {

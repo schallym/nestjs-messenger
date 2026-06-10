@@ -149,17 +149,20 @@ describe('KafkaTransport (implementation specifics)', () => {
     await deleteTopic(topic);
   });
 
-  it('redelivers a never-received rejected envelope by re-publishing', async () => {
+  it('treats reject of a never-received envelope as a no-op (publishes no copy)', async () => {
     const topic = uniqueTopic();
     const transport = makeTransport(topic);
 
+    // No in-flight delivery for this id: rejecting must not publish a redelivery copy
+    // (there is also no offset to commit, so the copy would duplicate the original).
     await transport.reject(
       new Envelope(new ConformanceMessage('rj')).with(new TransportMessageIdStamp('0:999')),
     );
+    await transport.send(new Envelope(new ConformanceMessage('real')));
     const received = await receiveOne(transport);
 
-    expect((received.message as ConformanceMessage).id).toBe('rj');
-    expect(received.last(RedeliveryStamp)?.retryCount).toBe(1);
+    expect((received.message as ConformanceMessage).id).toBe('real');
+    expect(received.last(RedeliveryStamp)).toBeUndefined();
     await transport.ack(received);
     await transport.close();
     await deleteTopic(topic);

@@ -26,8 +26,29 @@ const CONNECTION_SOCKET_CODES = new Set<string>([
 /** kafkajs protocol-error `type`s that mean a topic/partition does not exist. */
 const NOT_FOUND_PROTOCOL_TYPES = new Set<string>(['UNKNOWN_TOPIC_OR_PARTITION']);
 
+/**
+ * Deliberately duck-typed rather than `instanceof Error`: errors minted by Node's core
+ * (e.g. the AggregateError of a refused connection) belong to the host realm, and an
+ * `instanceof` check fails for them inside a vm (as under jest).
+ */
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error !== null && typeof error === 'object' && 'message' in error) {
+    const message: unknown = error.message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
+}
+
+function errorName(error: unknown): string | undefined {
+  if (error !== null && typeof error === 'object' && 'name' in error) {
+    const name: unknown = error.name;
+    if (typeof name === 'string') {
+      return name;
+    }
+  }
+  return undefined;
 }
 
 function protocolType(error: unknown): string | undefined {
@@ -41,7 +62,7 @@ function protocolType(error: unknown): string | undefined {
 }
 
 function socketCode(error: unknown): string | undefined {
-  if (error instanceof Error && 'code' in error) {
+  if (error !== null && typeof error === 'object' && 'code' in error) {
     const code: unknown = error.code;
     if (typeof code === 'string') {
       return code;
@@ -66,7 +87,7 @@ export function mapKafkaError(operation: string, error: unknown): TransportError
   if (type !== undefined && NOT_FOUND_PROTOCOL_TYPES.has(type)) {
     return new TransportNotFoundError(message, { cause: error });
   }
-  const name = error instanceof Error ? error.name : undefined;
+  const name = errorName(error);
   const code = socketCode(error);
   if (
     (name !== undefined && CONNECTION_ERROR_NAMES.has(name)) ||

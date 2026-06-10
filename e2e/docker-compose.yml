@@ -23,6 +23,40 @@ services:
       timeout: 2s
       retries: 20
 
+  # PostgreSQL for @schally/nestjs-messenger-transport-sql (postgres dialect).
+  # Clients connect via postgresql://messenger:messenger@localhost:5432/messenger.
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: messenger
+      POSTGRES_PASSWORD: messenger
+      POSTGRES_DB: messenger
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U messenger -d messenger']
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  # MySQL for @schally/nestjs-messenger-transport-sql (mysql dialect; ≥ 8.0.1 for
+  # SKIP LOCKED). Clients connect via mysql://messenger:messenger@localhost:3306/messenger.
+  mysql:
+    image: mysql:8.4
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: messenger
+      MYSQL_USER: messenger
+      MYSQL_PASSWORD: messenger
+      MYSQL_DATABASE: messenger
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -umessenger -pmessenger --silent']
+      interval: 2s
+      timeout: 4s
+      retries: 30
+      start_period: 20s
+
   # Single-node Apache Kafka (KRaft, no Zookeeper) for
   # @schally/nestjs-messenger-transport-kafka. Clients connect to localhost:9092.
   kafka:

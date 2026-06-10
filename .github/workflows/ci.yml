@@ -42,8 +42,37 @@ jobs:
     name: Unit tests + coverage
     runs-on: ubuntu-latest
     # Transport packages test against a real broker (the conformance suite), so the
-    # coverage job needs Redis, the Pub/Sub emulator, and Kafka. Other packages ignore them.
+    # coverage job needs Redis, the Pub/Sub emulator, Kafka, PostgreSQL and MySQL.
+    # Other packages ignore them.
     services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: messenger
+          POSTGRES_PASSWORD: messenger
+          POSTGRES_DB: messenger
+        options: >-
+          --health-cmd "pg_isready -U messenger -d messenger"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
+      mysql:
+        image: mysql:8.4
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: messenger
+          MYSQL_USER: messenger
+          MYSQL_PASSWORD: messenger
+          MYSQL_DATABASE: messenger
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -umessenger -pmessenger --silent"
+          --health-interval 2s
+          --health-timeout 4s
+          --health-retries 30
+          --health-start-period 20s
       redis:
         image: redis:7-alpine
         ports:
@@ -101,6 +130,8 @@ jobs:
           PUBSUB_EMULATOR_HOST: localhost:8685
           PUBSUB_PROJECT_ID: messenger-test
           KAFKA_BROKERS: localhost:9092
+          POSTGRES_DSN: postgresql://messenger:messenger@localhost:5432/messenger
+          MYSQL_DSN: mysql://messenger:messenger@localhost:3306/messenger
       - name: Upload coverage
         uses: codecov/codecov-action@v7
         with:
@@ -129,6 +160,8 @@ jobs:
           PUBSUB_EMULATOR_HOST: localhost:8685
           PUBSUB_PROJECT_ID: messenger-test
           KAFKA_BROKERS: localhost:9092
+          POSTGRES_DSN: postgresql://messenger:messenger@localhost:5432/messenger
+          MYSQL_DSN: mysql://messenger:messenger@localhost:3306/messenger
       - name: Stop brokers
         if: always()
         run: docker compose -f e2e/docker-compose.yml down -v

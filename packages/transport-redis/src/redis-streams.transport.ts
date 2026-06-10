@@ -92,7 +92,6 @@ export class RedisStreamsTransport
   private readonly claimIdleMs: number;
   private readonly pollIntervalMs: number;
   private readonly readBatchSize: number;
-  private readonly settled = new Set<string>();
   private readonly pending = new Set<Promise<unknown>>();
   private readonly inFlight = new Set<string>();
   private readonly drainWaiters: (() => void)[] = [];
@@ -123,13 +122,21 @@ export class RedisStreamsTransport
 
   async *get(signal: AbortSignal): AsyncIterableIterator<Envelope> {
     await this.ensureGroup();
-    while (!signal.aborted && !this.closing) {
+    while (!this.shouldStopConsuming(signal)) {
       const entries = await this.pull();
       if (entries.length === 0) {
         await sleep(this.pollIntervalMs);
         continue;
       }
       for (const entry of entries) {
+        // Re-check between entries, not only per batch: the generator suspends at the
+        // yield below, so close() (or an abort) can complete while the consumer settles
+        // entry k. Yielding k+1 afterwards would register in-flight state whose settle
+        // hits a quit connection; left un-yielded, the entry stays in the group's
+        // pending list and is reclaimed via XAUTOCLAIM.
+        if (this.shouldStopConsuming(signal)) {
+          return;
+        }
         const envelope = this.decode(entry);
         if (envelope === undefined) {
           await this.run('discard', this.redis.xack(this.stream, this.group, entry.id));
@@ -143,13 +150,11 @@ export class RedisStreamsTransport
 
   async ack(envelope: Envelope): Promise<void> {
     const id = this.requireId(envelope);
-    if (this.settled.has(id)) {
-      return;
-    }
-    this.settled.add(id);
     this.releaseInFlight(id);
     // XACK clears the pending list; XDEL deletes the entry so the stream doesn't grow
     // unbounded and so acking a message located via find() (failure inspection) removes it.
+    // Both no-op for an already-deleted id — that, not a remembered set of settled ids,
+    // is what makes a second ack harmless (per-instance state stays bounded, ADR-007).
     await this.run('ack', this.acknowledge(id));
   }
 
@@ -174,10 +179,11 @@ export class RedisStreamsTransport
 
   async reject(envelope: Envelope): Promise<void> {
     const id = this.requireId(envelope);
-    if (this.settled.has(id)) {
+    if (!this.inFlight.has(id)) {
+      // Already settled, or never delivered by this instance: redelivery re-publishes a
+      // copy (not idempotent), so it must run at most once per in-flight delivery (ADR-007).
       return;
     }
-    this.settled.add(id);
     this.releaseInFlight(id);
     await this.run('reject', this.redeliver(envelope, id));
   }
@@ -201,6 +207,15 @@ export class RedisStreamsTransport
     const reclaimed = await this.reclaimStalled();
     const fresh = await this.readBatch();
     return [...reclaimed, ...fresh];
+  }
+
+  /**
+   * Both flags can flip while the generator is suspended at a yield/await. Kept as a
+   * method (not inlined) because TS narrowing from the while-condition does not model
+   * suspension and would mark the mid-batch re-check as an unnecessary condition.
+   */
+  private shouldStopConsuming(signal: AbortSignal): boolean {
+    return signal.aborted || this.closing;
   }
 
   private async ensureGroup(): Promise<void> {
