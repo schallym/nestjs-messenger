@@ -17,7 +17,7 @@
     "@types/pg": "^8.11.10",
     "kafkajs": "^2.2.4",
     "mysql2": "^3.11.4",
-    "pg": "^8.13.1",
+    "pg": "^8.22.0",
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
     "@nestjs/platform-express": "^11.1.27",
