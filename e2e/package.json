@@ -16,7 +16,7 @@
     "@schally/nestjs-messenger-transport-sql": "workspace:*",
     "@types/pg": "^8.11.10",
     "kafkajs": "^2.2.4",
-    "mysql2": "^3.22.6",
+    "mysql2": "^3.23.1",
     "pg": "^8.22.0",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
