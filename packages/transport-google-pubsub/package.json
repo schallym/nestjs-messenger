@@ -1,6 +1,6 @@
 {
   "name": "@schally/nestjs-messenger-transport-google-pubsub",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Google Cloud Pub/Sub transport for @schally/nestjs-messenger.",
   "license": "MIT",
   "keywords": [
