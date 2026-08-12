@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-google-pubsub-v1.1.0...nestjs-messenger-transport-google-pubsub-v1.1.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** bump @google-cloud/pubsub from 5.3.1 to 6.0.0 ([#51](https://github.com/schallym/nestjs-messenger/issues/51)) ([3364482](https://github.com/schallym/nestjs-messenger/commit/33644822f8c877870ed3b64d84c1ec07492dd659))
+
 ## [1.1.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-google-pubsub-v1.0.0...nestjs-messenger-transport-google-pubsub-v1.1.0) (2026-06-10)
 
 
