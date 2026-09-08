@@ -220,6 +220,38 @@ describe('KafkaTransport (implementation specifics)', () => {
     await deleteTopic(topic);
   });
 
+  it('close() waits for every in-flight message, not only for the first one acked', async () => {
+    const topic = uniqueTopic();
+    const transport = makeTransport(topic);
+    await transport.send(new Envelope(new ConformanceMessage('a')));
+    await transport.send(new Envelope(new ConformanceMessage('b')));
+
+    // Pull both deliveries before settling either, so two messages are in flight at once.
+    const controller = new AbortController();
+    const deliveries = transport.get(controller.signal)[Symbol.asyncIterator]();
+    const first = await deliveries.next();
+    const second = await deliveries.next();
+    if (first.done === true || second.done === true) {
+      throw new Error('expected two in-flight envelopes');
+    }
+
+    let closed = false;
+    const closing = (async () => {
+      await transport.close();
+      closed = true;
+    })();
+
+    await transport.ack(first.value);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(closed).toBe(false); // the second delivery is still in flight
+
+    await transport.ack(second.value);
+    await closing;
+    expect(closed).toBe(true);
+    controller.abort();
+    await deleteTopic(topic);
+  });
+
   it('maps a broker connection failure to a typed TransportError', async () => {
     const transport = new KafkaTransport({
       brokers: ['localhost:1'], // nothing listening -> connection refused

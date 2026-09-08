@@ -32,6 +32,14 @@ updates:
     # Bundle non-breaking dev-dependency bumps into a single PR to cut noise; runtime
     # deps stay as individual PRs so each maps to its own clean patch release.
     groups:
+      # NestJS core packages peer on each other at the same major (platform-express@12
+      # requires core@12 / common@12), and nest-commander pins its supported Nest majors.
+      # Bump them together, majors included, so Dependabot never opens a PR that bumps one
+      # without the others. Listed first: a dependency joins the first group it matches.
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+          - nest-commander
       dev-dependencies:
         dependency-type: development
         update-types:

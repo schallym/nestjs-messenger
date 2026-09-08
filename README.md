@@ -324,7 +324,7 @@ commands), `…/testing` (`runTransportConformanceTests`, `ConformanceMessage`).
 
 ## Local development
 
-Requires Node 24 (see `.nvmrc`) and pnpm (pinned via `packageManager`).
+Requires Node 24.9+ (see `.nvmrc`) and pnpm (pinned via `packageManager`).
 
 ```bash
 pnpm install            # install the workspace
