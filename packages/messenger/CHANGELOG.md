@@ -1,5 +1,12 @@
 # @schally/nestjs-messenger
 
+## [1.2.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v1.1.0...nestjs-messenger-v1.2.0) (2026-09-08)
+
+
+### Features
+
+* **deps:** support NestJS 12 ([#71](https://github.com/schallym/nestjs-messenger/issues/71)) ([dd7bdb0](https://github.com/schallym/nestjs-messenger/commit/dd7bdb073e673b15dcde28a7a4ab102f19cfe067))
+
 ## [1.1.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-v1.0.0...nestjs-messenger-v1.1.0) (2026-06-10)
 
 
