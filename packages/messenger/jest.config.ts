@@ -19,7 +19,18 @@ const config: Config = {
   testMatch: ['<rootDir>/test/**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.spec.json',
+        // ts-jest emits TS151002 for every file whenever a Node16/NodeNext module kind is
+        // type-checked through its language service (`isolatedModules: false`, needed for the
+        // decorator-metadata emit described in tsconfig.spec.json); it forces CommonJS output
+        // on that path regardless. This package is `"type": "commonjs"`, so that is the emit
+        // we want and the message is noise. The real NodeNext check is the `typecheck` script.
+        diagnostics: { ignoreCodes: ['TS151002'] },
+      },
+    ],
   },
   // Barrel files (`index.ts`) are pure re-exports with no logic; the type-aware
   // emit turns each re-export into a getter, which only skews function coverage.

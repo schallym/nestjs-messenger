@@ -11,7 +11,7 @@ architecture and rules) and the [ADRs](docs/) for the non-obvious decisions.
 
 ## Prerequisites
 
-- **Node 24** — the version is pinned in [`.nvmrc`](.nvmrc) (`nvm use`).
+- **Node 24.9+** — the major is pinned in [`.nvmrc`](.nvmrc) (`nvm use`); Jest needs at least 24.9 to `require()` the ESM-only NestJS 12 packages.
 - **pnpm** — pinned via the `packageManager` field; enable it with `corepack enable`.
 - **Docker** — only needed to run the e2e suite (it boots real brokers via docker-compose).
 

@@ -242,6 +242,25 @@ describe('RedisStreamsTransport (implementation specifics)', () => {
     await deleteStream(stream);
   });
 
+  it('list() skips entries it cannot decode instead of failing the whole listing', async () => {
+    const stream = uniqueStream();
+    const transport = makeTransport(stream);
+    const admin = new Redis(DSN);
+    await admin.xadd(stream, '*', 'foreign', 'payload'); // no body, no headers
+    await admin.xadd(stream, '*', 'body', '{}', 'headers', 'not-json'); // poison entry
+    admin.disconnect();
+    await transport.send(new Envelope(new ConformanceMessage('real')));
+
+    const listed: Envelope[] = [];
+    for await (const envelope of transport.list()) {
+      listed.push(envelope);
+    }
+
+    expect(listed.map((e) => (e.message as ConformanceMessage).id)).toStrictEqual(['real']);
+    await transport.close();
+    await deleteStream(stream);
+  });
+
   it('reclaims a message left pending by a stalled consumer', async () => {
     const stream = uniqueStream();
     const stalled = makeTransport(stream, { consumer: 'stalled', claimIdleMs: 30_000 });
