@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-sql-v1.1.0...nestjs-messenger-transport-sql-v1.2.0) (2026-09-08)
+
+
+### Features
+
+* **deps:** support NestJS 12 ([#71](https://github.com/schallym/nestjs-messenger/issues/71)) ([dd7bdb0](https://github.com/schallym/nestjs-messenger/commit/dd7bdb073e673b15dcde28a7a4ab102f19cfe067))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @schally/nestjs-messenger bumped to 1.2.0
+  * peerDependencies
+    * @schally/nestjs-messenger bumped from ^1.0.0 to ^1.2.0
+
 ## [1.1.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-sql-v1.0.0...nestjs-messenger-transport-sql-v1.1.0) (2026-06-10)
 
 
