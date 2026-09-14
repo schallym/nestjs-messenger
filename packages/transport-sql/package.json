@@ -68,9 +68,9 @@
   "devDependencies": {
     "@schally/nestjs-messenger": "workspace:*",
     "@types/jest": "^30.0.0",
-    "@types/pg": "^8.21.0",
+    "@types/pg": "^8.23.1",
     "jest": "^30.5.1",
-    "mysql2": "^3.23.3",
+    "mysql2": "^3.24.4",
     "pg": "^8.23.0"
   }
 }
