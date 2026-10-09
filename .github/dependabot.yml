@@ -1,17 +1,14 @@
 version: 2
 
 updates:
-  # npm/pnpm dependencies — one set of PRs per manifest: the workspace root (tooling),
-  # each published package, and the private e2e app. Dependabot reconciles the shared
-  # root pnpm-lock.yaml automatically.
+  # npm/pnpm dependencies. Dependabot must run from the workspace root, where
+  # pnpm-lock.yaml and pnpm-workspace.yaml live: from there it reads every workspace
+  # manifest (packages/* and e2e) and bumps a dependency in all of them plus the lockfile
+  # in one PR. Do NOT list subdirectories: Dependabot does not support updating a pnpm
+  # workspace from inside it, and opens manifest-only PRs that fail
+  # `pnpm install --frozen-lockfile`.
   - package-ecosystem: npm
-    directories:
-      - '/'
-      - '/packages/messenger'
-      - '/packages/transport-redis'
-      - '/packages/transport-google-pubsub'
-      - '/packages/transport-kafka'
-      - '/e2e'
+    directory: '/'
     schedule:
       interval: weekly
       day: monday
@@ -35,7 +32,7 @@ updates:
       # NestJS core packages peer on each other at the same major (platform-express@12
       # requires core@12 / common@12), and nest-commander pins its supported Nest majors.
       # Bump them together, majors included, so Dependabot never opens a PR that bumps one
-      # without the others. Listed first: a dependency joins the first group it matches.
+      # without the others.
       nestjs:
         patterns:
           - '@nestjs/*'
@@ -45,6 +42,11 @@ updates:
         update-types:
           - minor
           - patch
+        # Dependabot assigns a dependency to its most specific matching group, not the
+        # first one, and ranks this group above `nestjs`: exclude the Nest packages here.
+        exclude-patterns:
+          - '@nestjs/*'
+          - nest-commander
 
   # Keep the actions used by the CI and release workflows current.
   - package-ecosystem: github-actions
