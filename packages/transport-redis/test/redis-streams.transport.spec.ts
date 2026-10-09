@@ -337,4 +337,41 @@ describe('RedisStreamsTransport (implementation specifics)', () => {
 
     await deleteStream(stream);
   });
+
+  it('close() waits until every in-flight message is settled, not just the first one', async () => {
+    const stream = uniqueStream();
+    const transport = makeTransport(stream);
+    await transport.send(new Envelope(new ConformanceMessage('first')));
+    await transport.send(new Envelope(new ConformanceMessage('second')));
+
+    // Pull both entries of the batch without settling either: two messages in flight.
+    const controller = new AbortController();
+    const iterator = transport.get(controller.signal)[Symbol.asyncIterator]();
+    const first = await iterator.next();
+    const second = await iterator.next();
+    if (first.done === true || second.done === true) {
+      throw new Error('expected both batched entries to be yielded');
+    }
+
+    let closed = false;
+    const closePromise = (async () => {
+      await transport.close();
+      closed = true;
+    })();
+
+    // Settling one of two in-flight messages must not release the drain. The pause gives a
+    // wrongly released close() time to complete; a correct one stays blocked regardless.
+    await transport.ack(first.value);
+    await delay(50);
+    expect(closed).toBe(false);
+
+    await transport.ack(second.value);
+    await closePromise;
+    expect(closed).toBe(true);
+
+    // Batch exhausted and closing: the iterator ends instead of polling the quit connection.
+    const afterClose = await iterator.next();
+    expect(afterClose.done).toBe(true);
+    await deleteStream(stream);
+  });
 });
