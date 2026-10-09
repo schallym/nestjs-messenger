@@ -64,7 +64,7 @@ importers:
     devDependencies:
       '@google-cloud/pubsub':
         specifier: ^6.1.0
-        version: 6.2.0
+        version: 6.1.0
       '@nestjs/common':
         specifier: ^12.1.2
         version: 12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -96,8 +96,8 @@ importers:
         specifier: ^8.23.1
         version: 8.23.1
       ioredis:
-        specifier: ^5.11.1
-        version: 5.11.1
+        specifier: ^6.0.0
+        version: 6.0.0
       kafkajs:
         specifier: ^2.2.4
         version: 2.2.4
@@ -158,7 +158,7 @@ importers:
     dependencies:
       '@google-cloud/pubsub':
         specifier: ^6.0.1
-        version: 6.2.0
+        version: 6.1.0
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -195,8 +195,8 @@ importers:
   packages/transport-redis:
     dependencies:
       ioredis:
-        specifier: ^5.11.1
-        version: 5.11.1
+        specifier: ^6.0.0
+        version: 6.0.0
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -496,8 +496,8 @@ packages:
     resolution: {integrity: sha512-x1L+lrIHgaMwN5fAhnNVS7rh0BZn9eKmqOBXnOUM3jkilF4GE4ooETS9SYnCtPCVHwQtByDTh5b7KIMUW7XAHQ==}
     engines: {node: '>=22'}
 
-  '@google-cloud/pubsub@6.2.0':
-    resolution: {integrity: sha512-E9mJwt+j5HuQTkK1aJXnNmuXgG5hPRbSqRHisOm+N55Fm2RAxDCpX4ii2Hws7te3FMENpcmDS0BqQv+GIjQcXw==}
+  '@google-cloud/pubsub@6.1.0':
+    resolution: {integrity: sha512-amPObGHTojTGLeaSTogY22vGkNc/cWaNXphS64Jmwkn2rcvIHnYnwsFwQaxYd+BfML48ninINn5gziRmcfOqPA==}
     engines: {node: '>=22'}
 
   '@grpc/grpc-js@1.14.4':
@@ -538,8 +538,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@ioredis/commands@1.10.0':
-    resolution: {integrity: sha512-UmeW7z4LfctwoQ5wkhVzgq8tXkreED2xZGpX+Bg+zA+WJFZCT6c062AfCK/Dfk81xZnnwdhJCUMkitihRaoC2Q==}
+  '@ioredis/commands@2.0.0':
+    resolution: {integrity: sha512-vrx0AE/T0h7cRZwfo1M39Cr+ZhZrkf0V8mQN75wucKCxCLD9l/VX6no3gFvrLqD1IlG/1LtzWovqEw3t0Vr9zg==}
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -2124,9 +2124,9 @@ packages:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
     engines: {node: '>= 0.4'}
 
-  ioredis@5.11.1:
-    resolution: {integrity: sha512-ehuGcf94bQXhfagULNXrJdfnWO38v070jxSx/qE87Kjzmu2fU7ro5EFAb+OPituLqgfyuQaym5DlrNydW2sJ9A==}
-    engines: {node: '>=12.22.0'}
+  ioredis@6.0.0:
+    resolution: {integrity: sha512-f+Dtubxfpf6KYFq7WVXJoOLn0bk4TJrMrN9SzeE+jrWrCWj7XX3fA6vkryafhADX+GMymRxgDJDOI33COkJc0w==}
+    engines: {node: '>=20.0.0'}
 
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
@@ -2928,8 +2928,8 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
-  react-is@19.2.8:
-    resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
+  react-is@19.3.0:
+    resolution: {integrity: sha512-UpMYezM4v5/18F28aC66AEsjXIgE02kyEMH6yLdgLXu/UTfa1Ntwck/nNLrbqJsEXW7gPb0coNO9FQse9WTovA==}
 
   readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
@@ -2937,10 +2937,6 @@ packages:
 
   redis-errors@1.2.0:
     resolution: {integrity: sha512-1qny3OExCf0UvUV/5wpYKf2YwPcOqXzkwKKSmKHiE6ZMQs5heeE/c8eXK+PNllPvmjgAbfnsbpkGZWy8cBpn9w==}
-    engines: {node: '>=4'}
-
-  redis-parser@3.0.0:
-    resolution: {integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==}
     engines: {node: '>=4'}
 
   reflect-metadata@0.2.2:
@@ -3780,7 +3776,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@google-cloud/pubsub@6.2.0':
+  '@google-cloud/pubsub@6.1.0':
     dependencies:
       '@google-cloud/paginator': 7.0.1
       '@google-cloud/precise-date': 6.0.0
@@ -3838,7 +3834,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.2.0
 
-  '@ioredis/commands@1.10.0': {}
+  '@ioredis/commands@2.0.0': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -5637,14 +5633,13 @@ snapshots:
       hasown: 2.0.4
       side-channel: 1.1.1
 
-  ioredis@5.11.1:
+  ioredis@6.0.0:
     dependencies:
-      '@ioredis/commands': 1.10.0
+      '@ioredis/commands': 2.0.0
       cluster-key-slot: 1.1.1
       debug: 4.4.3
       denque: 2.1.0
       redis-errors: 1.2.0
-      redis-parser: 3.0.0
       standard-as-callback: 2.1.0
     transitivePeerDependencies:
       - supports-color
@@ -6565,7 +6560,7 @@ snapshots:
   pretty-format@30.5.1:
     dependencies:
       '@jest/react-is-18': react-is@18.3.1
-      '@jest/react-is-19': react-is@19.2.8
+      '@jest/react-is-19': react-is@19.3.0
       '@jest/schemas': 30.5.0
       ansi-styles: 5.2.0
 
@@ -6612,7 +6607,7 @@ snapshots:
 
   react-is@18.3.1: {}
 
-  react-is@19.2.8: {}
+  react-is@19.3.0: {}
 
   readable-stream@3.6.2:
     dependencies:
@@ -6621,10 +6616,6 @@ snapshots:
       util-deprecate: 1.0.2
 
   redis-errors@1.2.0: {}
-
-  redis-parser@3.0.0:
-    dependencies:
-      redis-errors: 1.2.0
 
   reflect-metadata@0.2.2: {}
 
