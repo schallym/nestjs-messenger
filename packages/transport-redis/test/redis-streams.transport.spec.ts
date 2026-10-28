@@ -151,8 +151,8 @@ describe('RedisStreamsTransport (implementation specifics)', () => {
 
     const controller = new AbortController();
     const consuming = (async () => {
-      for await (const envelope of transport.get(controller.signal)) {
-        void envelope; // unreachable: ensureGroup fails first
+      for await (const _envelope of transport.get(controller.signal)) {
+        // unreachable: ensureGroup fails first
       }
     })();
 
