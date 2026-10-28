@@ -50,12 +50,12 @@
     "@schally/nestjs-messenger": "^0.1.0"
   },
   "dependencies": {
-    "@google-cloud/pubsub": "^6.2.0",
+    "@google-cloud/pubsub": "^6.3.1",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@schally/nestjs-messenger": "workspace:*",
     "@types/jest": "^30.0.0",
-    "jest": "^30.5.1"
+    "jest": "^30.5.2"
   }
 }
