@@ -389,8 +389,8 @@ describe('SqlTransport (postgres implementation specifics)', () => {
     const transport = makeTransport(uniqueQueue());
     const controller = new AbortController();
     const consuming = (async () => {
-      for await (const envelope of transport.get(controller.signal)) {
-        void envelope; // unreachable: the queue stays empty
+      for await (const _envelope of transport.get(controller.signal)) {
+        // unreachable: the queue stays empty
       }
     })();
 
