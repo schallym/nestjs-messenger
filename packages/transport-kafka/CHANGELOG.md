@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.1](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-kafka-v1.2.0...nestjs-messenger-transport-kafka-v1.2.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* **deps:** bump tslib from 2.8.1 to 2.9.1 ([#94](https://github.com/schallym/nestjs-messenger/issues/94)) ([31981a6](https://github.com/schallym/nestjs-messenger/commit/31981a68d7bbb85d7ab057fa1b5450cba5cd8bfe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @schally/nestjs-messenger bumped to 1.2.1
+  * peerDependencies
+    * @schally/nestjs-messenger bumped from ^0.1.0 to ^1.2.1
+
 ## [1.2.0](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-kafka-v1.1.0...nestjs-messenger-transport-kafka-v1.2.0) (2026-09-08)
 
 
