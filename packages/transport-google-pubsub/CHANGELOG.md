@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.2](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-google-pubsub-v1.2.1...nestjs-messenger-transport-google-pubsub-v1.2.2) (2026-11-03)
+
+
+### Bug Fixes
+
+* **deps:** bump @google-cloud/pubsub from 6.3.1 to 6.3.2 ([#93](https://github.com/schallym/nestjs-messenger/issues/93)) ([e2fa3b3](https://github.com/schallym/nestjs-messenger/commit/e2fa3b329f385e0e6cf1e417e2f747374364c2ca))
+* **deps:** bump tslib from 2.8.1 to 2.9.1 ([#94](https://github.com/schallym/nestjs-messenger/issues/94)) ([31981a6](https://github.com/schallym/nestjs-messenger/commit/31981a68d7bbb85d7ab057fa1b5450cba5cd8bfe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @schally/nestjs-messenger bumped to 1.2.1
+  * peerDependencies
+    * @schally/nestjs-messenger bumped from ^0.1.0 to ^1.2.1
+
 ## [1.2.1](https://github.com/schallym/nestjs-messenger/compare/nestjs-messenger-transport-google-pubsub-v1.2.0...nestjs-messenger-transport-google-pubsub-v1.2.1) (2026-10-28)
 
 
