@@ -1,4 +1,5 @@
 import { ok } from 'node:assert';
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   type Admin,
   type Consumer,
@@ -20,7 +21,7 @@ import {
   type TransportInterface,
   TransportMessageIdStamp,
 } from '@schally/nestjs-messenger';
-import { mapKafkaError } from './error-mapping';
+import { isUnknownTopicError, mapKafkaError } from './error-mapping';
 
 export interface KafkaTransportOptions {
   /** Broker bootstrap addresses, e.g. `['localhost:9092']`. */
@@ -56,6 +57,10 @@ export interface KafkaTransportOptions {
   /** Extra kafkajs client options (ssl, sasl, retry, ...). */
   readonly kafkaConfig?: Partial<KafkaConfig>;
 }
+
+/** How often, and how many times, a just-created topic's metadata is polled (5 s in total). */
+const TOPIC_METADATA_POLL_MS = 100;
+const TOPIC_METADATA_MAX_POLLS = 50;
 
 interface BufferedMessage {
   readonly partition: number;
@@ -113,7 +118,6 @@ export class KafkaTransport implements TransportInterface {
   private readonly drainWaiters: (() => void)[] = [];
   private producer: Producer | undefined;
   private consumer: Consumer | undefined;
-  private admin: Admin | undefined;
   private consumerPromise: Promise<void> | undefined;
   private topicReady = false;
   private closing = false;
@@ -212,9 +216,6 @@ export class KafkaTransport implements TransportInterface {
     if (this.producer !== undefined) {
       await this.producer.disconnect();
     }
-    if (this.admin !== undefined) {
-      await this.admin.disconnect();
-    }
   }
 
   private ensureConsumer(): Promise<void> {
@@ -260,20 +261,46 @@ export class KafkaTransport implements TransportInterface {
   }
 
   private async createTopic(): Promise<void> {
+    // Scoped to this call and always disconnected, so a failed attempt that is retried by
+    // a later send()/get() does not leave a connected admin client behind.
     const admin = this.kafka.admin();
-    await admin.connect();
-    this.admin = admin;
-    // Returns false (no throw) if the topic already exists — idempotent.
-    await admin.createTopics({
-      topics: [
-        {
-          topic: this.topic,
-          numPartitions: this.numPartitions,
-          configEntries: [{ name: 'max.message.bytes', value: this.maxMessageBytes.toString() }],
-        },
-      ],
-      waitForLeaders: true,
-    });
+    try {
+      await admin.connect();
+      // Returns false (no throw) if the topic already exists — idempotent.
+      await admin.createTopics({
+        topics: [
+          {
+            topic: this.topic,
+            numPartitions: this.numPartitions,
+            configEntries: [{ name: 'max.message.bytes', value: this.maxMessageBytes.toString() }],
+          },
+        ],
+        waitForLeaders: false,
+      });
+      await this.waitForTopicLeaders(admin);
+    } finally {
+      await admin.disconnect();
+    }
+  }
+
+  /**
+   * Resolves once every partition of the topic has a leader. Replaces kafkajs's own
+   * `waitForLeaders`, which tolerates only LEADER_NOT_AVAILABLE: a broker can also answer
+   * UNKNOWN_TOPIC_OR_PARTITION for a topic created an instant ago, until the creation
+   * reaches its metadata cache, and kafkajs fails the whole call on that answer.
+   */
+  private async waitForTopicLeaders(admin: Admin): Promise<void> {
+    for (let poll = 1; ; poll += 1) {
+      try {
+        await admin.fetchTopicMetadata({ topics: [this.topic] });
+        return;
+      } catch (error) {
+        if (!isUnknownTopicError(error) || poll >= TOPIC_METADATA_MAX_POLLS) {
+          throw error;
+        }
+        await delay(TOPIC_METADATA_POLL_MS);
+      }
+    }
   }
 
   /**
