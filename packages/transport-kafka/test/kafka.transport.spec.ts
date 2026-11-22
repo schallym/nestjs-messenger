@@ -6,6 +6,7 @@ import {
   TransportError,
   type TransportInterface,
   TransportMessageIdStamp,
+  TransportNotFoundError,
 } from '@schally/nestjs-messenger';
 import {
   ConformanceMessage,
@@ -54,8 +55,55 @@ async function deleteTopic(topic: string): Promise<void> {
   });
 }
 
+// kafkajs's `waitForLeaders` fails on the UNKNOWN_TOPIC_OR_PARTITION a broker can answer for
+// a just-created topic, so poll the metadata ourselves until the topic is visible.
 async function preCreate(topic: string): Promise<void> {
-  await admin.createTopics({ topics: [{ topic, numPartitions: 1 }], waitForLeaders: true });
+  await admin.createTopics({ topics: [{ topic, numPartitions: 1 }], waitForLeaders: false });
+  for (let poll = 1; ; poll += 1) {
+    try {
+      await admin.fetchTopicMetadata({ topics: [topic] });
+      return;
+    } catch (error) {
+      if (poll >= 50) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+}
+
+function unknownTopicError(): Error {
+  return Object.assign(new Error('This server does not host this topic-partition'), {
+    type: 'UNKNOWN_TOPIC_OR_PARTITION',
+  });
+}
+
+/**
+ * Makes the first `failures` topic-metadata lookups of every admin client created from now
+ * on reject with `error`, then lets them reach the real broker. Reproduces on demand the
+ * window in which a broker does not know yet about a topic it has just created. Returns a
+ * mock that records each lookup.
+ */
+function failTopicMetadata(failures: number, error: Error): jest.Mock {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- re-bound with .call below
+  const createAdmin = Kafka.prototype.admin;
+  let remaining = failures;
+  const lookups = jest.fn();
+  jest.spyOn(Kafka.prototype, 'admin').mockImplementation(function (this: Kafka, config) {
+    // eslint-disable-next-line unicorn/no-this-outside-of-class -- the Kafka client the spied method was called on
+    const realAdmin = createAdmin.call(this, config);
+    const fetchTopicMetadata = realAdmin.fetchTopicMetadata.bind(realAdmin);
+    realAdmin.fetchTopicMetadata = (options) => {
+      lookups();
+      if (remaining > 0) {
+        remaining -= 1;
+        return Promise.reject(error);
+      }
+      return fetchTopicMetadata(options);
+    };
+    return realAdmin;
+  });
+  return lookups;
 }
 
 async function receiveOne(transport: TransportInterface, timeoutMs = 10_000): Promise<Envelope> {
@@ -250,6 +298,55 @@ describe('KafkaTransport (implementation specifics)', () => {
     expect(closed).toBe(true);
     controller.abort();
     await deleteTopic(topic);
+  });
+
+  describe('auto-created topic not visible in the broker metadata yet', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('keeps polling until the topic shows up, then sends and receives normally', async () => {
+      const topic = uniqueTopic();
+      const lookups = failTopicMetadata(2, unknownTopicError());
+      const transport = makeTransport(topic);
+
+      await transport.send(new Envelope(new ConformanceMessage('late-topic')));
+      const received = await receiveOne(transport);
+
+      expect((received.message as ConformanceMessage).id).toBe('late-topic');
+      expect(lookups).toHaveBeenCalledTimes(3);
+      await transport.ack(received);
+      await transport.close();
+      await deleteTopic(topic);
+    });
+
+    it('gives up with a TransportNotFoundError when the topic never shows up', async () => {
+      const topic = uniqueTopic();
+      const lookups = failTopicMetadata(Number.POSITIVE_INFINITY, unknownTopicError());
+      const transport = makeTransport(topic);
+
+      await expect(
+        transport.send(new Envelope(new ConformanceMessage('x'))),
+      ).rejects.toBeInstanceOf(TransportNotFoundError);
+
+      expect(lookups).toHaveBeenCalledTimes(50);
+      await transport.close();
+      await deleteTopic(topic);
+    });
+
+    it('does not retry a metadata failure that is not an unknown topic', async () => {
+      const topic = uniqueTopic();
+      const lookups = failTopicMetadata(1, new Error('boom'));
+      const transport = makeTransport(topic);
+
+      await expect(
+        transport.send(new Envelope(new ConformanceMessage('x'))),
+      ).rejects.toBeInstanceOf(TransportError);
+
+      expect(lookups).toHaveBeenCalledTimes(1);
+      await transport.close();
+      await deleteTopic(topic);
+    });
   });
 
   it('maps a broker connection failure to a typed TransportError', async () => {

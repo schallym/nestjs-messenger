@@ -3,7 +3,7 @@ import {
   TransportError,
   TransportNotFoundError,
 } from '@schally/nestjs-messenger';
-import { mapKafkaError } from '../src/error-mapping';
+import { isUnknownTopicError, mapKafkaError } from '../src/error-mapping';
 
 describe('mapKafkaError', () => {
   it('returns an already-typed TransportError unchanged', () => {
@@ -68,5 +68,16 @@ describe('mapKafkaError', () => {
   it('handles null', () => {
     const nullish = JSON.parse('null') as unknown;
     expect(mapKafkaError('send', nullish)).toBeInstanceOf(TransportError);
+  });
+});
+
+describe('isUnknownTopicError', () => {
+  it('recognises the UNKNOWN_TOPIC_OR_PARTITION protocol error', () => {
+    expect(isUnknownTopicError({ type: 'UNKNOWN_TOPIC_OR_PARTITION' })).toBe(true);
+  });
+
+  it('rejects other protocol errors and errors without a type', () => {
+    expect(isUnknownTopicError({ type: 'LEADER_NOT_AVAILABLE' })).toBe(false);
+    expect(isUnknownTopicError(new Error('boom'))).toBe(false);
   });
 });

@@ -23,8 +23,10 @@ const CONNECTION_SOCKET_CODES = new Set<string>([
   'EAI_AGAIN',
 ]);
 
+const UNKNOWN_TOPIC = 'UNKNOWN_TOPIC_OR_PARTITION';
+
 /** kafkajs protocol-error `type`s that mean a topic/partition does not exist. */
-const NOT_FOUND_PROTOCOL_TYPES = new Set<string>(['UNKNOWN_TOPIC_OR_PARTITION']);
+const NOT_FOUND_PROTOCOL_TYPES = new Set<string>([UNKNOWN_TOPIC]);
 
 /**
  * Deliberately duck-typed rather than `instanceof Error`: errors minted by Node's core
@@ -69,6 +71,15 @@ function socketCode(error: unknown): string | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * True for the broker's "unknown topic or partition" answer. Besides a genuinely missing
+ * topic, a broker also gives it for a topic created an instant ago, until the creation has
+ * reached its metadata cache.
+ */
+export function isUnknownTopicError(error: unknown): boolean {
+  return protocolType(error) === UNKNOWN_TOPIC;
 }
 
 /**
